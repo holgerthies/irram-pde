@@ -1,0 +1,71 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.dSYM
+build
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+bin/*
+
+# Mac specific files
+.DS_Store
+
+# vim files
+*.swp
+*.swo
+*.swn
+*.swm
+.ycm_extra_conf.py
+
+# Misc
+*.pyc
+/eterm-color.ti
+*.aux
+*.log
+*.pdf
+*.thm
+/*.pdf#
+/*.pdf#
+/docs/#analytic.pdf#
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.gz
+*.dvi
+/GPATH
+/GRTAGS
+/GTAGS
+*.h#
+*.toc
+*.snm
+*.nav
+/docs/presentation/complexity.svg
+/docs/presentation/complexity.png
+/docs/presentation/class_overview.dia~
+/docs/presentation/odesolving.dia~
+*.png
+/include/TaylorModel.h
