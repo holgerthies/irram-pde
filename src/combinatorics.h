@@ -8,7 +8,6 @@
 namespace iRRAM{
   std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k);
   std::vector<std::vector<unsigned long>> bounded_count(const std::vector<unsigned long>& bound);
-  INTEGER factorial(int n);
   INTEGER choose(int n, int k);
   REAL inv_factorial(const int n);
   REAL inv_factorial();
@@ -30,7 +29,7 @@ namespace iRRAM{
     return ans;
   }
 
-  INTEGER factorial(const unsigned long n){
+  INTEGER factorial(const unsigned int n){
     static std::vector<INTEGER> ans={1};
     for(int j=ans.size(); j<=n; j++){
       ans.push_back(ans.back()*j);

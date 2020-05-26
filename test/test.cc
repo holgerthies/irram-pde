@@ -1,6 +1,8 @@
 #include <iRRAM.h>
 #include "cinfinity.h"
 #include "matrix.h"
+#include "powerseries.h"
+#include "pde.h"
 using namespace iRRAM;
 template<unsigned int m, unsigned int n>
 void print(const Matrix<m,n,REAL>& M){
@@ -13,6 +15,7 @@ void print(const Matrix<m,n,REAL>& M){
 }
 
 void compute(){
+  FactorCache::init();
   std::function<REAL(const std::array<unsigned int, 1>&, const std::array<REAL,1>&)> f = [] (auto index, auto x) {
                                                                                            switch(index[0] % 4){
                                                                                            case 0:
@@ -26,17 +29,24 @@ void compute(){
                                                                                            }
                                                                                            return REAL(0);
                                                                                          };
-  Cinfinity<1,REAL> sine(f, [] (auto index, auto x, auto eps) {return 1;} );
-  Cinfinity<1,REAL> cosine = sine.derive({101});
-  MVFunction<1,2,2,REAL> fun({{{sine,cosine},{cosine, sine}}});
-  MVFunction<1,2,1,REAL> v({{{sine},{cosine}}});
-  print((v+v)({0.2}));
+  std::shared_ptr<Cinfinity<1,REAL>> sine = std::make_shared<Cinfinity<1,REAL>>(f, [] (auto index, auto x, auto eps) {return 1;} );
+  auto cosine = std::make_shared<Cinfinity<1,REAL>>(sine->derive({101}));
+  std::array<REAL,1> center = {{0}};
+  PS_ptr<1,REAL> sp = std::make_shared<Powerseries<1,REAL>>(sine,center,REAL(1));
+  PS_ptr<1,REAL> cp = std::make_shared<Powerseries<1,REAL>>(cosine,center,1);
+  cout << (sp)({0.2}) << std::endl;
+  cout << (cp)({0.2}) << std::endl;
+  auto  sp2  = (sp*cp)*sp+cp*sp;
+  
+  cout << (sp2)({0.2}) << std::endl;
+  MVPowerseries<1,2,2,REAL> fun({{{sp,cp},{cp, sp}}});
+  MVPowerseries<1,2,1,REAL> v({{{sp},{cp}}});
+  print(fun({0.2}));
+  auto dv = fun.partial_derivative(1);
+  print(dv({0.2}));
   cout << std::endl;
-  print((fun*v)({0.2}));
-  cout << std::endl;
-  print((fun({0.2})*v({0.2})));
-  auto g = (sine * (cosine + sine)*cosine);
-  auto dg = g.derive({50});
-  cout << dg({0.2}) << std::endl;
-  cout << (cosine)({0.2}) << std::endl;
+  std::array<MVPowerseries<1,2,2,REAL>,1> farr = {{fun}};
+  auto sol = Pde_local_solution<2,1,REAL>(farr, v, center);
+  print(sol({0.2}));
+  
 }

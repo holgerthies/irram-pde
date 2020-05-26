@@ -4,8 +4,8 @@
 template <unsigned int m, unsigned int n, class T>
 class Matrix{
 private:
-  std::array<std::array<T, n>,m> M;
 public:
+  std::array<std::array<T, n>,m> M;
   Matrix<m,n,T>() {};
   Matrix<m,n,T>(const std::array<std::array<T,n>,m>& M) : M(M) {};
   T& operator()(const unsigned int i, const unsigned int j) {
@@ -17,6 +17,7 @@ public:
   } 
 
   Matrix<m,n,T> operator-();
+
 };
 
 // unary -
@@ -83,24 +84,24 @@ Matrix<m,n,T> Matrix<m,n,T>::operator-(){
   }
 
 
-  template <unsigned int m, unsigned int n, class T>
-  Matrix<m,n,T> operator+(const Matrix<m,n,T>& lhs, const Matrix<m,n,T>& rhs){
-    return add(lhs,rhs);
-  }
-  template <unsigned int m, unsigned int n, class T>
-  Matrix<m,n,T> operator-(const Matrix<m,n,T>& lhs, const Matrix<m,n,T>& rhs){
-    return subtract(lhs,rhs);
-  }
-  template <unsigned int m, unsigned int n, class T>
-  Matrix<m,n,T> operator*(const T& lhs, const Matrix<m,n,T>& rhs){
-    return multiply(lhs,rhs);
-  }
-  template <unsigned int m, unsigned int n, class T>
-  Matrix<m,n,T> operator*(const Matrix<m,n,T>& lhs, const T& rhs){
-    return rhs*lhs;
-  }
-  template <unsigned int m, unsigned int n, unsigned int k, class T>
-  Matrix<m,k,T> operator*(const Matrix<m,n,T>& lhs, const Matrix<n,k,T>& rhs){
-    return multiply(lhs,rhs);
-  }
+template <unsigned int m, unsigned int n, class T>
+Matrix<m,n,T> operator+(const Matrix<m,n,T>& lhs, const Matrix<m,n,T>& rhs){
+  return add(lhs,rhs);
+}
+template <unsigned int m, unsigned int n, class T>
+Matrix<m,n,T> operator-(const Matrix<m,n,T>& lhs, const Matrix<m,n,T>& rhs){
+  return subtract(lhs,rhs);
+}
+template <unsigned int m, unsigned int n, class T>
+Matrix<m,n,T> operator*(const T& lhs, const Matrix<m,n,T>& rhs){
+  return multiply(lhs,rhs);
+}
+template <unsigned int m, unsigned int n, class T>
+Matrix<m,n,T> operator*(const Matrix<m,n,T>& lhs, const T& rhs){
+  return rhs*lhs;
+}
+template <unsigned int m, unsigned int n, unsigned int k, class T>
+Matrix<m,k,T> operator*(const Matrix<m,n,T>& lhs, const Matrix<n,k,T>& rhs){
+  return multiply(lhs,rhs);
+}
 #endif
