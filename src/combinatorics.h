@@ -5,16 +5,30 @@
 #ifndef COMBINATORICS_h
 #define COMBINATORICS_h
 #include <vector>
+#include <array>
 namespace iRRAM{
   std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k);
   std::vector<std::vector<unsigned long>> bounded_count(const std::vector<unsigned long>& bound);
   INTEGER choose(int n, int k);
-  REAL inv_factorial(const int n);
+  REAL inv_factorial(const unsigned int n);
   REAL inv_factorial();
   template<class... Args>
   REAL inv_factorial(const int n, Args... rest)
   {
     return inv_factorial(n)*inv_factorial(rest...);
+  }
+  template<unsigned int d>
+  REAL inv_factorial(typename std::array<unsigned int,d>::const_iterator start){
+    return inv_factorial(*start)*inv_factorial<d-1>(start+1);
+  }
+  template<unsigned int d>
+  REAL inv_factorial(const std::array<unsigned int, d>& n)
+  {
+    return inv_factorial<d>(n.cbegin());
+  }
+  template<>
+  REAL inv_factorial<1>(std::array<unsigned int,1>::const_iterator start){
+    return inv_factorial(*start);
   }
   // get all partitions of size k of the number n
   std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k){
@@ -90,19 +104,52 @@ namespace iRRAM{
     return 1;
     
   }
-  REAL inv_factorial(const int n){
-    using std::log;
-    if ((n!=0)&&(n*log(n)-n > 2*-ACTUAL_STACK.actual_prec)){
-      REAL return_value(0);
-      sizetype error;
-      sizetype_set(error,1,ACTUAL_STACK.actual_prec);
-      return_value.seterror(error);
-      return return_value;
+
+  template<unsigned int d>
+  std::vector<std::array<unsigned int, d>> partitions(unsigned int n){
+    std::vector<std::array<unsigned int,d>> ans;
+    for(int i=0; i<=n;i++){
+      for(auto p : partitions<d-1>(n-i)){
+        std::array<unsigned int, d> partition;
+        partition[0] = i;
+        std::copy(p.begin(),p.end(), partition.begin()+1);
+        ans.push_back(partition);
+      }
     }
-    if (n==0)
-      return REAL(1);
-    REAL inv_fact=inv_factorial(n-1)/REAL(n);
-    return inv_fact;
+    return ans;
   }
+
+  template<>
+  std::vector<std::array<unsigned int, 0>> partitions<0>(unsigned int n){
+    if(n > 0) return std::vector<std::array<unsigned int,0>>();
+    return std::vector<std::array<unsigned int, 0>>{std::array<unsigned int, 0>()};
+  }
+
+  template<unsigned int d, class T>
+T power(const std::array<T,d>& x, const std::array<unsigned int, d>& alpha){
+  T ans=1;
+  for(int i=0; i<d; i++){
+    ans *= power(x[i], alpha[i]);
+  }
+  return ans;
+}
+
+REAL inv_factorial(const int n){
+  using std::log;
+  if ((n!=0)&&(n*log(n)-n > 2*-ACTUAL_STACK.actual_prec)){
+    REAL return_value(0);
+    sizetype error;
+    sizetype_set(error,1,ACTUAL_STACK.actual_prec);
+    return_value.seterror(error);
+    return return_value;
+  }
+  if (n==0)
+    return REAL(1);
+  REAL inv_fact=inv_factorial(n-1)/REAL(n);
+  return inv_fact;
+}
+REAL inv_factorial(const unsigned int n){
+  return inv_factorial(int(n));
+}
 }
 #endif

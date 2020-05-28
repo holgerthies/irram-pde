@@ -123,10 +123,10 @@ Cinfinity<n,T> Cinfinity<n,T>::derive(const std::array<unsigned int, n>& index) 
       return ans;
     }
 
-    template <unsigned int n, class T>
-    std::shared_ptr<Cinfinity<n,T>> operator*(std::shared_ptr<Cinfinity<n,T>> const& lhs, std::shared_ptr<Cinfinity<n,T>> const& rhs){
-      return std::make_shared<Cinfinity<n,T>>([lhs,rhs] (auto index, auto x) {return product_rule<n>(lhs, rhs, index, x);}, [lhs,rhs](auto index, auto x, auto eps) {return product_rule_bound<n>(lhs,rhs,index,x,eps);} );
-    }
+  template <unsigned int n, class T>
+  std::shared_ptr<Cinfinity<n,T>> operator*(std::shared_ptr<Cinfinity<n,T>> const& lhs, std::shared_ptr<Cinfinity<n,T>> const& rhs){
+    return std::make_shared<Cinfinity<n,T>>([lhs,rhs] (auto index, auto x) {return product_rule<n>(lhs, rhs, index, x);}, [lhs,rhs](auto index, auto x, auto eps) {return product_rule_bound<n>(lhs,rhs,index,x,eps);} );
+  }
 
 // matrix valued function
     template <unsigned int d, unsigned int m, unsigned int n, class T>

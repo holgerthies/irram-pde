@@ -54,87 +54,183 @@ namespace iRRAM{
     }
   };
   FactorCache* FactorCache::instance = 0;
+
+  template<unsigned int d, class T>
+  class CoefficientCache {
+  private:
+    std::vector<CoefficientCache<d-1,T>> cache;
+  public:
+    T get(typename std::array<unsigned int,d>::const_iterator start){
+      return cache[*start].get(start+1);
+    }
+
+    T get(const std::array<unsigned int,d>& index){
+      return get(index.cbegin());
+    }
+
+    void put(typename std::array<unsigned int,d>::const_iterator start, const T& val){
+      if(cache.size() <= (*start)+1)
+        cache.resize((*start)+1);
+      cache[*start].put(start+1,val);
+    }
+
+    void put(const std::array<unsigned int,d>& index, const T& val){
+      put(index.cbegin(), val);
+    }
+
+    bool isvalid(typename std::array<unsigned int,d>::const_iterator start){
+      if(cache.size() <= *start) return false;
+      return cache[*start].isvalid(start+1);
+    }
+
+    bool isvalid(const std::array<unsigned int,d>& index){
+      return isvalid(index.cbegin());
+    }
+  };
+
+  template<class T>
+  class CoefficientCache<1,T> {
+  private:
+    std::vector<T> cache;
+  public:
+    T get(typename std::array<unsigned int,1>::const_iterator start){
+      return cache[*start];
+    }
+
+    T get(const std::array<unsigned int,1>& index){
+      return get(index.cbegin());
+    }
+
+    void put(typename std::array<unsigned int,1>::const_iterator start, const T& val){
+      cache.resize(*start+1);
+      cache[*start] = val;
+    }
+
+    void put(const std::array<unsigned int,1>& index, const T& val){
+      put(index.cbegin(), val);
+    }
+
+    bool isvalid(typename std::array<unsigned int,1>::const_iterator start){
+      return (cache.size() > *start);
+    }
+
+    bool isvalid(const std::array<unsigned int,1>& index){
+      return isvalid(index.cbegin());
+    }
+  };
+
   template<unsigned int d, class T>
   class Powerseries : public Cinfinity<d,T> {
   private:
-    std::array<T,1> center;
+    std::array<T,d> center;
     REAL radius;
-    std::function<T(unsigned int)> coeff_fun;
-    std::function<REAL(unsigned int)> bound_fun;
+    std::function<T(const std::array<unsigned int, d>&)> coeff_fun;
+    std::function<REAL(const std::array<unsigned int,d>&)> bound_fun;
     mutable std::vector<T> coeffs;
-    mutable std::vector<REAL> bound;
+    mutable CoefficientCache<d,T> coeff_cache;
+    mutable CoefficientCache<d,REAL> bound_cache;
     REAL get_factor(int n, int m) const{
       return FactorCache::get_factor(n,m);
     }
-  protected:
-    virtual T get_coefficient_raw(const unsigned int i) const{
-      return coeff_fun(i);
+    REAL get_factor(const std::array<unsigned int,d>& n,const std::array<unsigned int,d>& m) const{
+      REAL ans=1;
+      for(int i=0; i<d; i++)
+        ans *= FactorCache::get_factor(n[i], m[i]);
+      return ans;
     }
-    virtual REAL get_bound_raw(const unsigned int i) const{
-      return bound_fun(i);
+  protected:
+    virtual T get_coefficient_raw(const std::array<unsigned int, d>& index) const{
+      return coeff_fun(index);
+    }
+    virtual REAL get_bound_raw(const std::array<unsigned int, d>& index) const{
+      return bound_fun(index);
     }
     unsigned int cache_size() const{
       return coeffs.size();
     }
   public:
-    Powerseries<d,T>(const std::shared_ptr<Cinfinity<d,T>>& f, const std::array<T,1>& center, const REAL& radius) : center(center), radius(radius) {
+    Powerseries<d,T>(const std::shared_ptr<Cinfinity<d,T>>& f, const std::array<T,d>& center, const REAL& radius) : center(center), radius(radius) {
       //this->f = [this] (auto ind, auto x){ return sum(ind,x);};
       //this->bound = [this] (auto ind, auto x, auto eps){return 0;};
-      coeff_fun = [f,center] (unsigned int i) {return inv_factorial(i)*f->evaluate({i},center);};
-      bound_fun = [f,center,radius] (unsigned int i) {return f->get_bound({i},center,radius);};
-      
+      coeff_fun = [f,center] (const std::array<unsigned int,d>& index) {return inv_factorial<d>(index)*f->evaluate(index,center);};
+      bound_fun = [f,center,radius] (const std::array<unsigned int,d>& index) {return f->get_bound({index},center,radius);};
     }
     Powerseries<d,T>() : Powerseries(std::make_shared<Cinfinity<d,T>>(), {0},0){}
 
-    Powerseries<d,T>(const std::function<T(unsigned int)>& coeff_fun, const std::function<REAL(unsigned int)>& bound_fun, const std::array<T,1>& center, const REAL& radius) : center(center), radius(radius), coeff_fun(coeff_fun), bound_fun(bound_fun) {}
+    Powerseries<d,T>(const std::function<T(const std::array<unsigned int,d>&)>& coeff_fun, const std::function<REAL(const std::array<unsigned int, d>&)>& bound_fun, const std::array<T,1>& center, const REAL& radius) : center(center), radius(radius), coeff_fun(coeff_fun), bound_fun(bound_fun) {
+    }
 
-    T get_coefficient(const unsigned int i) const{
-      auto sz=coeffs.size();
-      if(i < sz) return coeffs[i];
-      int e = max(i,0);
-      coeffs.resize(e+1);
-      for(int j=sz; j<=e;j++ ){
-        coeffs[j] = get_coefficient_raw(j);
+    T get_coefficient(const std::array<unsigned int,d>& index) const{
+      if(!coeff_cache.isvalid(index)){
+        // make sure previous coefficients are already cached
+        std::array<unsigned int, d> pindex(index);
+        for(int i=0; i<d; i++){
+          if(pindex[i] > 0){
+            pindex[i]--;
+            get_coefficient(pindex);
+            pindex[i]++;
+          }
+        }
+        if(!coeff_cache.isvalid(index))
+          coeff_cache.put(index,get_coefficient_raw(index));
       }
-      return coeffs[i];
+      return coeff_cache.get(index);
     }
 
-    REAL get_bound(unsigned int i) const{
-    auto sz=bound.size();
-    if(i < sz) return bound[i];
-    int e = max(i,0);
-    bound.resize(e+1);
-    for(int j=sz; j<=e;j++){
-      bound[j] = get_bound_raw(j);
+    REAL get_bound(const std::array<unsigned int,d>& index) const{
+      if(!bound_cache.isvalid(index)){
+        // make sure previous coefficients are already cached
+        std::array<unsigned int, d> pindex(index);
+        for(int i=0; i<d;i++){
+          if(pindex[i] > 0){
+            pindex[i]--;
+            get_bound(pindex);
+            pindex[i]++;
+          }
+        }
+        bound_cache.put(index,get_bound_raw(index));
+      }
+      return bound_cache.get(index);
     }
-    return bound[i];
-  }
 
   REAL get_bound(const std::array<unsigned int, d>& index, const std::array<T,d>& x, const REAL& eps) const override{
-    return get_bound(index[0]);
+    return get_bound(index);
   }
 
-  std::array<T,1> get_center() const {return center;}
+  std::array<T,d> get_center() const {return center;}
   REAL get_radius() const {return radius;}
   T evaluate(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const override{
     return sum(index,x);
   }
   T sum(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const {
-    T xp=1, xc = (x[0] - center[0]);
-    int j = index[0];
-    T sum=get_coefficient(j)*xp;
+    std::array<T, d> xc;
+    std::transform(x.begin(), x.end(), center.begin(),xc.begin(), std::minus<T>());
+    T sum=get_factor(index,index)*get_coefficient(index);
     T ans = sum;
-    REAL error = get_bound(j+1)*inv_factorial(j+1)*xc;
+    REAL error = 0;
+    for(auto p : partitions<d>(1)){
+      std::array<unsigned int,d> p2;
+      std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
+      error += get_bound(p2)*power<d,T>(xc,p2);
+    }
+    int i = 0;
     sizetype trunc_error = real_to_error(error), sum_error,total_error;
     sum.geterror(sum_error);
     sizetype_add(total_error, sum_error, trunc_error);
-    int i=0;
     while (sizetype_less(sum_error, trunc_error) &&
            (trunc_error.exponent >= ACTUAL_STACK.actual_prec) ){
       i++;
-      xp *= xc;
-      sum += get_factor(i+j,j)*get_coefficient(i+j)*xp;
-      error = get_bound(i+j+1)*inv_factorial(i+j+1)*xp*xc;
+      for(auto p : partitions<d>(i)){
+        std::array<unsigned int,d> p2;
+        std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
+        sum += get_factor(p2,index)*get_coefficient(p2)*power<d,T>(xc, p2);
+      }
+      error = 0;
+      for(auto p : partitions<d>(i+1)){
+        std::array<unsigned int,d> p2;
+        std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
+        error += inv_factorial<d>(p)*get_bound(p2)*power<d,T>(xc,p2);
+      }
       trunc_error = real_to_error(error);
       sum.geterror(sum_error);
       sizetype curr_error;
@@ -201,6 +297,7 @@ PS_ptr<d,T> operator+(const PS_ptr<d,T>& lhs, const PS_ptr<d,T>& rhs){
   
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 class MVPowerseries : public Matrix<m,n,PS_ptr<d,T>> {
+private:
 public:
   using Matrix<m,n,PS_ptr<d,T>>::Matrix;
   MVPowerseries(const Matrix<m,n,PS_ptr<d,T>>& M) : Matrix<m,n,PS_ptr<d,T>>(M) {};
@@ -217,51 +314,66 @@ public:
     }
     return ans;
   }
+
+  auto get_center() const{
+    return (*this)(0,0)->get_center();
+  }
+
+  REAL get_radius() const{
+    REAL ans = (*this)(0,0)->get_radius();
+    for(int i=0; i<m;i++){
+      for(int j=0; j<n; j++){
+        ans = minimum(ans, (*this)(i,j)->get_radius());
+      }
+    }
+    return ans;
+  }
+
 };
 // compute partial derivative
-    template <unsigned int d, unsigned int m, unsigned int n, class T>
-      MVPowerseries<d,m,n,T> MVPowerseries<d,m,n,T>::partial_derivative(const unsigned int i) const{
-      std::array<unsigned int, d> index;
-      index[i-1] = 1;
-      MVPowerseries<d,m,n,T> ans;
-      for(unsigned int i=0; i < m; i++){
-        for(unsigned int j=0; j < n; j++){
-          ans(i,j) = std::make_shared<Powerseries<d,REAL>>(std::make_shared<Cinfinity<d,REAL>>((*this)(i,j)->derive(index)), (*this)(i,j)->get_center(), (*this)(i,j)->get_radius());;
-        }
-      }
-      return ans;
-    }
-
-// redefine overloaded operators on matrix type
-    template <unsigned int d, unsigned int m, unsigned int n, class T>
-      MVPowerseries<d,m,n,T> operator+(const MVPowerseries<d,m,n,T>& lhs, const MVPowerseries<d,m,n,T>& rhs){
-      return add(lhs,rhs);
-    }
-
-    template <unsigned int d, unsigned int m, unsigned int n, class T>
-      MVPowerseries<d,m,n,T> operator-(const MVPowerseries<d,m,n,T>& lhs, const MVPowerseries<d,m,n,T>& rhs){
-      return subtract(lhs,rhs);
-    }
-
-    template <unsigned int d, unsigned int m, unsigned int n, unsigned int k, class T>
-      MVPowerseries<d,m,k,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const MVPowerseries<d,n,k,T>& rhs){
-      return multiply(lhs,rhs);
-    }
-
-    template <unsigned int d, unsigned int m, unsigned int n, class T>
-      MVPowerseries<d,m,n,T> operator*(const T& lhs, const MVPowerseries<d,m,n,T>& rhs){
-      MVPowerseries<d,m,n,T> ans;
-      for(int i=0; i<m;i++){
-        for(int j=0;j<n;j++){
-          ans(i,j) = lhs*rhs(i,j);
-        }
-      }
-      return ans;
-    }
-    template <unsigned int d, unsigned int m, unsigned int n, class T>
-      MVPowerseries<d,m,n,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const T& rhs){
-      return multiply(lhs,rhs);
+template <unsigned int d, unsigned int m, unsigned int n, class T>
+MVPowerseries<d,m,n,T> MVPowerseries<d,m,n,T>::partial_derivative(const unsigned int i) const{
+  std::array<unsigned int, d> index{};
+  index[i-1] = 1;
+  MVPowerseries<d,m,n,T> ans;
+  for(unsigned int i=0; i < m; i++){
+    for(unsigned int j=0; j < n; j++){
+      ans(i,j) = std::make_shared<Powerseries<d,REAL>>(std::make_shared<Cinfinity<d,REAL>>((*this)(i,j)->derive(index)), (*this)(i,j)->get_center(), (*this)(i,j)->get_radius());;
     }
   }
+  return ans;
+}
+
+// redefine overloaded operators on matrix type
+template <unsigned int d, unsigned int m, unsigned int n, class T>
+MVPowerseries<d,m,n,T> operator+(const MVPowerseries<d,m,n,T>& lhs, const MVPowerseries<d,m,n,T>& rhs){
+  return add(lhs,rhs);
+}
+
+template <unsigned int d, unsigned int m, unsigned int n, class T>
+MVPowerseries<d,m,n,T> operator-(const MVPowerseries<d,m,n,T>& lhs, const MVPowerseries<d,m,n,T>& rhs){
+  return subtract(lhs,rhs);
+}
+
+template <unsigned int d, unsigned int m, unsigned int n, unsigned int k, class T>
+MVPowerseries<d,m,k,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const MVPowerseries<d,n,k,T>& rhs){
+  return multiply(lhs,rhs);
+}
+
+template <unsigned int d, unsigned int m, unsigned int n, class T>
+MVPowerseries<d,m,n,T> operator*(const T& lhs, const MVPowerseries<d,m,n,T>& rhs){
+  MVPowerseries<d,m,n,T> ans;
+  for(int i=0; i<m;i++){
+    for(int j=0;j<n;j++){
+      ans(i,j) = lhs*rhs(i,j);
+    }
+  }
+  return ans;
+}
+template <unsigned int d, unsigned int m, unsigned int n, class T>
+MVPowerseries<d,m,n,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const T& rhs){
+  return multiply(lhs,rhs);
+}
+}
 
 #endif
