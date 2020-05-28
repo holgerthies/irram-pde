@@ -73,7 +73,7 @@ void compute(){
   PS_ptr<2,REAL> cp = std::make_shared<Powerseries<2,REAL>>(cosiney,center,1);
   auto test = sp->derive({1,0});
   // cout << (sp)({0,0}) << std::endl;
-  // cout << (cp)({0,0.1}) << std::endl;
+  cout << (cp)({0,0.1}) << std::endl;
   // auto  sp2  = sp*(sp*cp+cp)+sp;
   MVPowerseries<2,2,2,REAL> fun({{{sp,cp},{cp, sp}}});
   MVPowerseries<2,2,1,REAL> v({{{sp},{cp}}});
