@@ -25,6 +25,7 @@ namespace iRRAM{
     
   }
 
+  // caches n*(n-1)*..*(n-j+1)
   class FactorCache{
   private:
     FactorCache() = default;
@@ -122,8 +123,6 @@ namespace iRRAM{
   template<unsigned int d, class T>
   class Powerseries : public Cinfinity<d,T> {
   private:
-    std::array<T,d> center;
-    REAL radius;
     std::function<T(const std::array<unsigned int, d>&)> coeff_fun;
     std::function<REAL(const std::array<unsigned int,d>&)> bound_fun;
     mutable std::vector<T> coeffs;
@@ -139,6 +138,8 @@ namespace iRRAM{
       return ans;
     }
   protected:
+    std::array<T,d> center;
+    REAL radius;
     virtual T get_coefficient_raw(const std::array<unsigned int, d>& index) const{
       return coeff_fun(index);
     }
@@ -150,14 +151,12 @@ namespace iRRAM{
     }
   public:
     Powerseries<d,T>(const std::shared_ptr<Cinfinity<d,T>>& f, const std::array<T,d>& center, const REAL& radius) : center(center), radius(radius) {
-      //this->f = [this] (auto ind, auto x){ return sum(ind,x);};
-      //this->bound = [this] (auto ind, auto x, auto eps){return 0;};
       coeff_fun = [f,center] (const std::array<unsigned int,d>& index) {return inv_factorial<d>(index)*f->evaluate(index,center);};
       bound_fun = [f,center,radius] (const std::array<unsigned int,d>& index) {return f->get_bound({index},center,radius);};
     }
     Powerseries<d,T>() : Powerseries(std::make_shared<Cinfinity<d,T>>(), {0},0){}
 
-    Powerseries<d,T>(const std::function<T(const std::array<unsigned int,d>&)>& coeff_fun, const std::function<REAL(const std::array<unsigned int, d>&)>& bound_fun, const std::array<T,1>& center, const REAL& radius) : center(center), radius(radius), coeff_fun(coeff_fun), bound_fun(bound_fun) {
+    Powerseries<d,T>(const std::function<T(const std::array<unsigned int,d>&)>& coeff_fun, const std::function<REAL(const std::array<unsigned int, d>&)>& bound_fun, const std::array<T,1>& center, const REAL& radius) :  coeff_fun(coeff_fun), bound_fun(bound_fun),center(center), radius(radius) {
     }
 
     T get_coefficient(const std::array<unsigned int,d>& index) const{
