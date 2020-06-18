@@ -125,9 +125,9 @@ namespace iRRAM{
   private:
     std::function<T(const std::array<unsigned int, d>&)> coeff_fun;
     std::function<REAL(const std::array<unsigned int,d>&)> bound_fun;
-    mutable std::vector<T> coeffs;
-    mutable CoefficientCache<d,T> coeff_cache;
-    mutable CoefficientCache<d,REAL> bound_cache;
+    mutable std::vector<T> coeffs = {};
+    mutable CoefficientCache<d,T> coeff_cache = {};
+    mutable CoefficientCache<d,REAL> bound_cache = {};
     REAL get_factor(int n, int m) const{
       return FactorCache::get_factor(n,m);
     }
@@ -155,6 +155,10 @@ namespace iRRAM{
       bound_fun = [f,center,radius] (const std::array<unsigned int,d>& index) {return f->get_bound({index},center,radius);};
     }
     Powerseries<d,T>() : Powerseries(std::make_shared<Cinfinity<d,T>>(), {0},0){}
+    Powerseries<d,T>(const Powerseries<d,T>& ps) : center(ps.get_center()), radius(ps.get_radius()){
+      coeff_fun = [&ps] (const std::array<unsigned int,d>& index) {return ps.get_coefficient(index);};
+      bound_fun = [&ps] (const std::array<unsigned int,d>& index) {return ps.get_bound(index);};
+    }
 
     Powerseries<d,T>(const std::function<T(const std::array<unsigned int,d>&)>& coeff_fun, const std::function<REAL(const std::array<unsigned int, d>&)>& bound_fun, const std::array<T,1>& center, const REAL& radius) :  coeff_fun(coeff_fun), bound_fun(bound_fun),center(center), radius(radius) {
     }
@@ -192,91 +196,96 @@ namespace iRRAM{
       return bound_cache.get(index);
     }
 
-  REAL get_bound(const std::array<unsigned int, d>& index, const std::array<T,d>& x, const REAL& eps) const override{
-    return get_bound(index);
-  }
-
-  std::array<T,d> get_center() const {return center;}
-  REAL get_radius() const {return radius;}
-  T evaluate(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const override{
-    return sum(index,x);
-  }
-  T sum(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const {
-    std::array<T, d> xc;
-    std::transform(x.begin(), x.end(), center.begin(),xc.begin(), std::minus<T>());
-    T sum=get_factor(index,index)*get_coefficient(index);
-    T ans = sum;
-    REAL error = 0;
-    for(auto p : partitions<d>(1)){
-      std::array<unsigned int,d> p2;
-      std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
-      error += get_bound(p2)*power<d,T>(xc,p2);
+    REAL get_bound(const std::array<unsigned int, d>& index, const std::array<T,d>& x, const REAL& eps) const override{
+      return get_bound(index);
     }
-    int i = 0;
-    sizetype trunc_error = real_to_error(error), sum_error,total_error;
-    sum.geterror(sum_error);
-    sizetype_add(total_error, sum_error, trunc_error);
-    while (sizetype_less(sum_error, trunc_error) &&
-           (trunc_error.exponent >= ACTUAL_STACK.actual_prec) ){
-      i++;
-      for(auto p : partitions<d>(i)){
+
+    std::array<T,d> get_center() const {return center;}
+    REAL get_radius() const {return radius;}
+    T evaluate(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const override{
+      return sum(index,x);
+    }
+    T sum(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const {
+      std::array<T, d> xc;
+      std::transform(x.begin(), x.end(), center.begin(),xc.begin(), std::minus<T>());
+      T sum=get_factor(index,index)*get_coefficient(index);
+      T ans = sum;
+      REAL error = 0;
+      for(auto p : partitions<d>(1)){
         std::array<unsigned int,d> p2;
         std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
-        sum += get_factor(p2,index)*get_coefficient(p2)*power<d,T>(xc, p2);
+        error += get_bound(p2)*power<d,T>(xc,p2);
       }
-      error = 0;
-      for(auto p : partitions<d>(i+1)){
-        std::array<unsigned int,d> p2;
-        std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
-        error += inv_factorial<d>(p)*get_bound(p2)*power<d,T>(xc,p2);
-      }
-      trunc_error = real_to_error(error);
+      int i = 0;
+      sizetype trunc_error = real_to_error(error), sum_error,total_error;
       sum.geterror(sum_error);
-      sizetype curr_error;
-      sizetype_add(curr_error, sum_error, trunc_error);
-      if(sizetype_less(curr_error, total_error)){
-        ans = sum;
-        ans.seterror(curr_error);
-        total_error = curr_error;
+      sizetype_add(total_error, sum_error, trunc_error);
+      while (sizetype_less(sum_error, trunc_error) &&
+             (trunc_error.exponent >= ACTUAL_STACK.actual_prec) ){
+        i++;
+        for(auto p : partitions<d>(i)){
+          std::array<unsigned int,d> p2;
+          std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
+          sum += get_factor(p2,index)*get_coefficient(p2)*power<d,T>(xc, p2);
+        }
+        error = 0;
+        for(auto p : partitions<d>(i+1)){
+          std::array<unsigned int,d> p2;
+          std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
+          error += inv_factorial<d>(p)*get_bound(p2)*power<d,T>(xc,p2);
+        }
+        trunc_error = real_to_error(error);
+        sum.geterror(sum_error);
+        sizetype curr_error;
+        sizetype_add(curr_error, sum_error, trunc_error);
+        if(sizetype_less(curr_error, total_error)){
+          ans = sum;
+          ans.seterror(curr_error);
+          total_error = curr_error;
+        }
       }
+      return ans;
     }
-    return ans;
-  }
 
-  Powerseries<d,T>& operator+=(const Powerseries<d,T>& f){
-    *this = *this + f;
-    return *this;
+    Powerseries<d,T>& operator+=(const Powerseries<d,T>& f){
+      *this = *this + f;
+      return *this;
+    }
+
   };
-};
+  template<unsigned int d, class T>
+  class PS_ptr {
+  private :
+    std::shared_ptr<Powerseries<d,T>> ps;
+  public:  
+    PS_ptr() : ps(std::make_shared<Powerseries<d,T>>()) {};
+    PS_ptr(const std::shared_ptr<Powerseries<d,T>>& ps) : ps(ps) {};
+    Powerseries<d,T>* operator->() const{
+      return ps.get();
+    }
+    T operator()(const std::array<T,d>& x) const {
+      return (*ps)(x);
+    }
+    std::shared_ptr<Cinfinity<d,T>> fun() const{
+      return ps;
+    }
+    PS_ptr<d,T>& operator+=(const PS_ptr<d,T>& p2){
+      auto sum = *this + p2;
+      *this = sum;
+      return *this;
+    }
+  };
 
-template<unsigned int d, class T>
-class PS_ptr {
-private :
-  std::shared_ptr<Powerseries<d,T>> ps;
-public:  
-  PS_ptr() : ps(std::make_shared<Powerseries<d,T>>()) {};
-  PS_ptr(const std::shared_ptr<Powerseries<d,T>>& ps) : ps(ps) {};
-  Powerseries<d,T>* operator->() const{
-    return ps.get();
+  template<unsigned int d, class T>
+  CinfinityPtr<d,T> toPowerseries(const CinfinityPtr<d,T>& f, const std::array<T,d> center, const REAL& radius){
+    return std::make_shared<Powerseries<d,T>>(f, center, radius);
   }
-  T operator()(const std::array<T,d>& x) const {
-    return (*ps)(x);
-  }
-  std::shared_ptr<Cinfinity<d,T>> fun() const{
-    return ps;
-  }
-  PS_ptr<d,T>& operator+=(const PS_ptr<d,T>& p2){
-    auto sum = *this + p2;
-    *this = sum;
-    return *this;
-  }
-};
 
-template<unsigned int d, class T>
-PS_ptr<d,T> operator*(const T& lhs, const PS_ptr<d,T>& rhs){
-  return std::make_shared<Powerseries<d,T>>(lhs*rhs.fun(), rhs->get_center(),rhs->get_radius());
-}
-template<unsigned int d, class T>
+  template<unsigned int d, class T>
+  PS_ptr<d,T> operator*(const T& lhs, const PS_ptr<d,T>& rhs){
+    return std::make_shared<Powerseries<d,T>>(lhs*rhs.fun(), rhs->get_center(),rhs->get_radius());
+  }
+  template<unsigned int d, class T>
 PS_ptr<d,T> operator*(const PS_ptr<d,T>& lhs, const PS_ptr<d,T>& rhs){
   REAL new_radius = minimum(lhs->get_radius(), rhs->get_radius());
   // for now assume that the center is the same (this should be
@@ -330,18 +339,18 @@ public:
 
 };
 // compute partial derivative
-template <unsigned int d, unsigned int m, unsigned int n, class T>
-MVPowerseries<d,m,n,T> MVPowerseries<d,m,n,T>::partial_derivative(const unsigned int i) const{
-  std::array<unsigned int, d> index{};
-  index[i-1] = 1;
-  MVPowerseries<d,m,n,T> ans;
-  for(unsigned int i=0; i < m; i++){
-    for(unsigned int j=0; j < n; j++){
-      ans(i,j) = std::make_shared<Powerseries<d,REAL>>(std::make_shared<Cinfinity<d,REAL>>((*this)(i,j)->derive(index)), (*this)(i,j)->get_center(), (*this)(i,j)->get_radius());;
+  template <unsigned int d, unsigned int m, unsigned int n, class T>
+  MVPowerseries<d,m,n,T> MVPowerseries<d,m,n,T>::partial_derivative(const unsigned int i) const{
+    std::array<unsigned int, d> index{};
+    index[i-1] = 1;
+    MVPowerseries<d,m,n,T> ans;
+    for(unsigned int i=0; i < m; i++){
+      for(unsigned int j=0; j < n; j++){
+        ans(i,j) = std::make_shared<Powerseries<d,REAL>>(std::make_shared<Cinfinity<d,REAL>>((*this)(i,j)->derive(index)), (*this)(i,j)->get_center(), (*this)(i,j)->get_radius());;
+      }
     }
+    return ans;
   }
-  return ans;
-}
 
 // redefine overloaded operators on matrix type
 template <unsigned int d, unsigned int m, unsigned int n, class T>
@@ -374,5 +383,6 @@ MVPowerseries<d,m,n,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const T& rhs
   return multiply(lhs,rhs);
 }
 }
+
 
 #endif
