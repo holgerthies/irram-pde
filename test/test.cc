@@ -15,6 +15,16 @@ void print(const Matrix<m,n,REAL>& M){
   }
 }
 
+template<unsigned int e, unsigned int d>
+std::vector<REAL> solve(Pde_local_solution<e,d,REAL>& system, const REAL& x){
+  std::vector<REAL> sols(e);
+  auto y = system({x});
+  for(int i=0; i<e;i++){
+    sols[i] = y(i,0);
+  }
+  return sols;
+}
+
 void compute(){
   FactorCache::init();
   std::function<REAL(const std::array<unsigned int, 1>&, const std::array<REAL,1>&)> f = [] (auto index, auto x) {
@@ -62,61 +72,136 @@ void compute(){
   std::shared_ptr<Cinfinity<1,REAL>> sine = std::make_shared<Cinfinity<1,REAL>>(f, [] (auto index, auto x, auto eps) {return 1;} );
   std::shared_ptr<Cinfinity<2,REAL>> sinex = std::make_shared<Cinfinity<2,REAL>>(fx, [] (auto index, auto x, auto eps) {  if(index[1] > 0) return 0; else return 1;} );
   std::shared_ptr<Cinfinity<2,REAL>> siney = std::make_shared<Cinfinity<2,REAL>>(fy, [] (auto index, auto x, auto eps) { if(index[0] > 0) return 0; else return 1;} );
-  auto cosiney = std::make_shared<Cinfinity<2,REAL>>(siney->derive({0,1}));
-  std::array<REAL,2> center = {{0.5,0.75}};
-  auto sxcy = toPowerseries<2,REAL>((sinex+cosiney+sinex*cosiney-sinex)*cosiney, center, 1);
-  //auto x2 = std::make_shared<Polynomial<1,REAL>>(monomial<REAL>(2,5));
-  REAL r=1,c=1;
-  auto f0 =(1/r)*monomial<REAL>(0,2);
-  auto x = monomial<REAL>(1,2);
-  PS_ptr<1,REAL> f12 = std::make_shared<Powerseries<1,REAL>>(f0);
-  auto f2 = (r*c*c)*monomial<REAL>(0,2);
-  PS_ptr<1,REAL> f21 = std::make_shared<Powerseries<1,REAL>>(f2);
-  PS_ptr<1,REAL> zero = std::make_shared<Powerseries<1,REAL>>();
-  PS_ptr<1,REAL> lf = std::make_shared<Powerseries<1,REAL>>(x);
-  std::array<REAL,1> center1d = {{0}};
-  auto F1 = P2M<2,3,3,REAL>({
+  static int iteration_counter = 0;
+
+  int dimension=0, system,max_iter,prec;
+  struct rusage usage;
+  struct timeval start, end;
+  auto transport_equation = P2MF<1,1,1,REAL>({{{"-3"}}}, {'x'});
+  auto l = P2MF<1,1,1,REAL>({{{"x^2+x"}}}, {'x'});
+  auto solution = Pde_local_solution<1,1,REAL>({{transport_equation}}, l, {0.3}); 
+  std::array<REAL,1> center = {0.3};
+  for(int i=0; i<10; i++){
+    print(solution({REAL(i)/REAL(30)}));
+  }
+  auto F1_1df = P2MF<1,2,2,REAL>({
+      {{"0", "1"},
+       {"1", "0"},
+      }}, {'x'});
+  auto F1_1d = toPowerseries(F1_1df, {{0}}, 1);
+
+  auto v_1df = P2MF<1,2,1,REAL>({{{"2x+0.02"}, {"1x^2+0.2"}}}, {'x'});
+  auto v_1d = toPowerseries(v_1df, {{0}}, 1);
+
+  auto F1_2df = P2MF<2,3,3,REAL>({
       {{"0", "0", "1"},
        {"0","0", "0"},
        {"1","0","0"}
       }}, {'x', 'y'});
-  auto F2 = P2M<2,3,3,REAL>({
+  auto F1_2d = toPowerseries(F1_2df, {{0,0}}, 1);
+
+  auto F2_2df = P2MF<2,3,3,REAL>({
       {{"0", "0", "0"},
        {"0","0", "1"},
        {"0","1","0"}
       }}, {'x', 'y'});
-  auto v = P2M<2,3,1,REAL>({{{"2xy+1"}, {"1x^2+0.5"}, {"4y+3"}}}, {'x', 'y'});
-  print(F1({0.2,0}));
-  print(F2({0.2,0.2}));
-  print(v({0.2,0.2}));
-  //auto p1 = Polynomial<2,REAL>("7.4+53x^3+23x^2y^1+77y^2x^9+4x^2y^4+6xy+8", {'x', 'y'}, 1);
-  //p1.print({'x', 'y'});
-//   MVPowerseries<1,3,3,REAL> f_1({{{zero,zero,f12},{zero,zero,zero},{f21,zero, zero}}});
-//   MVPowerseries<1,3,3,REAL> f_2({{{zero,zero,zero},{zero,zero,f12},{zero,f21, zero}}});
-//   //auto f12 = (1/r)*constf;
-// // auto x22 = from1d<2,REAL>(x2, 0);
-// // auto y2 = from1d<2,REAL>(x, 1);
-// // auto xy = x22*y2;
-// // cout << (*sxcy)({0.2,0.3}) << std::endl;
-// // cout << std::endl;
-//    auto cosine = std::make_shared<Cinfinity<1,REAL>>(sine->derive({1}));
-//    PS_ptr<1,REAL> sn = std::make_shared<Powerseries<1,REAL>>(sine,center1d,REAL(1));
-// // auto cosine = std::make_shared<Cinfinity<1,REAL>>(sine->derive({1}));
-//    PS_ptr<1,REAL> cn = std::make_shared<Powerseries<1,REAL>>(cosine,center1d,REAL(1));
-// // PS_ptr<2,REAL> sp = std::make_shared<Powerseries<2,REAL>>(sinex,center,REAL(1));
-// // //cout <<"test:" << sp({0.1,0.1}) << std::endl;
-// // PS_ptr<2,REAL> cp = std::make_shared<Powerseries<2,REAL>>(cosiney,center,1);
-// // // cout << (sp)({0,0}) << std::endl;
-// // // auto  sp2  = sp*(sp*cp+cp)+sp;
-// // MVPowerseries<1,2,2,REAL> fun1d({{{s,c},{c, s}}});
-//    MVPowerseries<1,3,1,REAL> v1d({{{lf},{cn}, {cn}}});
-     std::array<MVPowerseries<2,3,3,REAL>,2> farr1d = {{F1,F2}};
-     auto sol = Pde_local_solution<3,2,REAL>(farr1d, v, {{0,0}});
-     for(int i=0; i<1000;i++){
-       print(sol({REAL(i)/REAL(100)}));
-       cout << std::endl;
-     }
+  auto F2_2d = toPowerseries(F2_2df, {{0,0}}, 1);
 
+  auto v_2df = P2MF<2,3,1,REAL>({{{"2xy+0.01"}, {"1x^2+0.05"}, {"4y+0.03"}}}, {'x', 'y'});
+  auto v_2d = toPowerseries(v_2df, {{0,0}}, 1);
+
+  std::array<MVPowerseries<1,2,2,REAL>,1> farr_1d = {{F1_1d}};
+  std::array<MVPowerseries<2,3,3,REAL>,2> farr_2d = {{F1_2d, F2_2d}};
+
+  std::array<MVFunction<1,2,2,REAL>,1> farr_1df = {{F1_1df}};
+  std::array<MVFunction<2,3,3,REAL>,2> farr_2df = {{F1_2df, F2_2df}};
+  while(dimension == 0){
+    iRRAM::cout << "choose system dimension" << std::endl;
+    iRRAM::cin >> dimension;
+    if(dimension != 1 && dimension != 2){
+      iRRAM::cout << "invalid dimension" << std::endl;
+      dimension = 0;
+    }
+  }
+  iRRAM::cout << "choose system" << std::endl;
+  iRRAM::cin >>  system;
+  
+  REAL x;
+  iRRAM::cout << "choose x" << std::endl;
+  iRRAM::cin >>  x;
+
+  iRRAM::cout << "choose precision (or 0 for iteration number)" << std::endl;
+  iRRAM::cin >>  prec;
+  bool out = true;
+  if(prec > 0){
+    iRRAM::cout << setRwidth(prec) << std::endl;
+  }
+  else{
+    iRRAM::cout << "choose number of iterations" << std::endl;
+    iRRAM::cin >>  max_iter;
+    out=false;
+  }
+
+  iteration_counter++; 
+  if(prec <= 0 && iteration_counter == max_iter) return;
+  
+  
+  getrusage(RUSAGE_SELF, &usage);
+  start = usage.ru_utime;
+  
+  getrusage(RUSAGE_SELF, &usage);
+  start = usage.ru_utime;
+  std::vector<REAL> ys;
+  if(dimension == 1){
+    auto sol = Pde_local_solution<2,1,REAL>(farr_1df, v_1df, {{0}});
+    ys = solve(sol, x);
+  }
+  if(dimension == 2){
+    auto sol = Pde_local_solution<3,2,REAL>(farr_2d, v_2d, {{0,0}});
+    ys = solve(sol, x);
+  }
+    for(int i = 0; i<ys.size();i++){
+      cout << ys[i] << " ";
+    }
+    cout << std::endl;
+  //print(sol({x}));
+  getrusage(RUSAGE_SELF, &usage);
+  end = usage.ru_utime;
+  auto iteration_time =  end.tv_sec-start.tv_sec+double(end.tv_usec-start.tv_usec)/1000000;
+
+  sizetype error;
+  sizetype_exact(error);
+  for(auto y : ys){
+    sizetype curr_error;
+    y.geterror(curr_error);
+    sizetype_max(error, error, curr_error);
+  }
+  
+  int error_exp_normalized;
+  unsigned long mantissa = error.mantissa;
+  error_exp_normalized = error.exponent;
+  while(mantissa > 1){
+    mantissa /= 2;
+    error_exp_normalized++;
+  }
+  //check(sol, A3_sol(5), 50);
+  // return;
+  
+  
+  // std::cout << " dimension:" << dimension;
+  // std::cout << " system:" << system;
+  // std::cout << " time:" << iteration_time;
+  // std::cout << " iteration:" << iteration_counter;
+  // std::cout << " precision:" << ACTUAL_STACK.actual_prec;
+  // std::cout << " error_mantissa:"  << error.mantissa;
+  // std::cout << " error_exponent:" << error.exponent;
+  // std::cout << " normalized:" << error_exp_normalized;
+  std::cout << dimension << "," << -1*error_exp_normalized << "," << iteration_time;
+  
+  std::cout << std::endl;
+  
+  if(prec <= 0)
+    iRRAM::cout << (REAL(0) == REAL(0)) << std::endl;
 //print(fun1d({0.2}));
 // MVPowerseries<2,2,2,REAL> fun({{{sp,cp},{cp, sp}}});
 // MVPowerseries<2,2,1,REAL> v({{{sp},{cp}}});

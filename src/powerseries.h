@@ -337,6 +337,16 @@ public:
     return ans;
   }
 
+  REAL get_bound(const std::array<unsigned int,d>& index) const{
+    REAL ans = (*this)(0,0)->get_bound(index);
+    for(int i=0; i<m;i++){
+      for(int j=0; j<n; j++){
+        ans = maximum(ans, (*this)(i,j)->get_bound(index));
+      }
+    }
+    return ans;
+  }
+
 };
 // compute partial derivative
   template <unsigned int d, unsigned int m, unsigned int n, class T>
@@ -381,6 +391,17 @@ MVPowerseries<d,m,n,T> operator*(const T& lhs, const MVPowerseries<d,m,n,T>& rhs
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVPowerseries<d,m,n,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const T& rhs){
   return multiply(lhs,rhs);
+}
+
+template<unsigned int d, unsigned int m, unsigned int n,class T>
+MVPowerseries<d,m,n,T> toPowerseries(const MVFunction<d,m,n,T>& f, const std::array<T,d> center, const REAL& radius){
+  MVPowerseries<d,m,n,T> ans;
+  for(int i=0; i<m;i++){
+    for(int j=0;j<n;j++){
+      ans(i,j) = std::make_shared<Powerseries<d,T>>(f(i,j), center, radius);
+    }
+  }
+  return ans;
 }
 }
 
