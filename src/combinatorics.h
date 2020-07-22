@@ -6,41 +6,64 @@
 #define COMBINATORICS_h
 #include <vector>
 #include <array>
+#include <numeric>
 namespace iRRAM{
-  std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k);
-  std::vector<std::vector<unsigned long>> bounded_count(const std::vector<unsigned long>& bound);
-  INTEGER choose(int n, int k);
-  REAL inv_factorial(const unsigned int n);
-  REAL inv_factorial();
-  template<class... Args>
-  REAL inv_factorial(const int n, Args... rest)
-  {
-    return inv_factorial(n)*inv_factorial(rest...);
-  }
   template<unsigned int d>
-  REAL inv_factorial(typename std::array<unsigned int,d>::const_iterator start){
-    return inv_factorial(*start)*inv_factorial<d-1>(start+1);
-  }
-  template<unsigned int d>
-  REAL inv_factorial(const std::array<unsigned int, d>& n)
-  {
-    return inv_factorial<d>(n.cbegin());
-  }
-  template<>
-  REAL inv_factorial<1>(std::array<unsigned int,1>::const_iterator start){
-    return inv_factorial(*start);
-  }
-  // get all partitions of size k of the number n
-  std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k){
-    if(k == 1) return std::vector<std::vector<unsigned long>>{{n}};
-    std::vector<std::vector<unsigned long>> ans;
-    for(int i=0; i<=n; i++){
-      for(std::vector<unsigned long> p : partitions(n-i, k-1)){
-        p.push_back(i);
-        ans.push_back(p);
+  class Multiindex : public std::array<int,d>{
+  public:
+    using std::array<int,d>::array;
+    // template<typename ...E>
+    // Multiindex(E&&... e) : std::array<int,d>{{std::forward<E>(e)...}} {}
+    Multiindex(std::initializer_list<int> l) {
+      int i=0;
+      for(auto n : l){
+        (*this)[i++] = n;
       }
     }
+  };
+
+  template<unsigned int d>
+  Multiindex<d> operator+(const Multiindex<d>& lhs, const Multiindex<d>& rhs){
+    Multiindex<d> ans;
+    for(int i=0; i<d; i++){
+      ans[i] = lhs[i]+rhs[i];
+    } 
     return ans;
+  }
+
+  template<unsigned int d>
+  Multiindex<d> operator-(const Multiindex<d>& lhs, const Multiindex<d>& rhs){
+    Multiindex<d> ans;
+    for(int i=0; i<d; i++){
+      ans[i] = lhs[i]-rhs[i];
+    } 
+    return ans;
+  }
+
+  template<unsigned int d>
+  void print(const Multiindex<d>& idx){
+    for(int i=0; i<d;i++){
+      cout << idx[i] << " "; 
+    }
+    cout << std::endl;
+  };
+
+  REAL inv_factorial(const unsigned int n);
+  REAL inv_factorial();
+
+  template<unsigned int d>
+  REAL inv_factorial_iter(typename std::array<int,d>::const_iterator start){
+    return inv_factorial(*start)*inv_factorial_iter<d-1>(start+1);
+  }
+  template<>
+  REAL inv_factorial_iter<1>(std::array<int,1>::const_iterator start){
+    return inv_factorial(*start);
+  }
+
+  template<unsigned int d>
+  REAL inv_factorial(const Multiindex<d>& alpha)
+  {
+    return inv_factorial_iter<d>(alpha.cbegin());
   }
 
   INTEGER factorial(const unsigned int n){
@@ -49,6 +72,20 @@ namespace iRRAM{
       ans.push_back(ans.back()*j);
     }
     return ans[n];
+  }
+
+  template<unsigned int d>
+  REAL factorial(const Multiindex<d>& alpha){
+    REAL ans =1;
+    for(int i=0; i<d;i++){
+      ans *= REAL(factorial(alpha[i]));
+    }
+    return ans;
+  }
+
+  template<unsigned int d>
+  int abs(const Multiindex<d>& alpha){
+    return std::accumulate(alpha.begin(), alpha.end(), 0);
   }
 
   INTEGER choose(unsigned int n, unsigned int k){
@@ -70,22 +107,24 @@ namespace iRRAM{
     else mem[n][k] = choose(n-1,k-1)+choose(n-1,k);
     return mem[n][k];
   }
+  
 
   template<unsigned int n>
-  REAL choose(const std::array<unsigned int, n>& alpha, const std::array<unsigned int, n>& beta, const int size){
+  REAL choose(const Multiindex<n>& alpha, const Multiindex<n>& beta, const int size){
     if(size == 0) return 1;
     return REAL(choose(alpha[size-1],beta[size-1]))*choose<n>(alpha, beta, size-1);
   }
+
   template<unsigned int n>
-  REAL choose(const std::array<unsigned int, n>& alpha, const std::array<unsigned int, n>& beta){
+  REAL choose(const Multiindex<n>& alpha, const Multiindex<n>& beta){
     return choose<n>(alpha, beta, n);
   }
 
-  template<unsigned int n>
-  std::vector<std::array<unsigned int, n>> bounded_count(const std::array<unsigned int,n>& bound, const int size){
-    if(size == 0) return std::vector<std::array<unsigned int,n>>{std::array<unsigned int,n>()};
-    std::vector<std::array<unsigned int,n>> ans; 
-    auto rest=bounded_count<n>(bound, size-1);
+  template<unsigned int d>
+  std::vector<Multiindex<d>> bounded_count(const Multiindex<d>& bound, const int size){
+    if(size == 0) return std::vector<Multiindex<d>>{Multiindex<d>()};
+    std::vector<Multiindex<d>> ans; 
+    auto rest=bounded_count<d>(bound, size-1);
     for(auto& v : rest){
       for(int i=0; i<=bound[size-1]; i++){
         v[size-1] = i;
@@ -95,37 +134,74 @@ namespace iRRAM{
     return ans;
   }
 
-  template<unsigned int n>
-  std::vector<std::array<unsigned int, n>> bounded_count(const std::array<unsigned int,n>& bound){
-    return bounded_count<n>(bound, n);
+  template<unsigned int d>
+  std::vector<Multiindex<d>> bounded_count(const Multiindex<d>& bound){
+    return bounded_count<d>(bound, d);
   } 
-  REAL inv_factorial()
-  {
-    return 1;
-    
+  // check for deletion
+
+  template<unsigned int d>
+  REAL inv_factorial_iter(typename std::array<unsigned int,d>::const_iterator start){
+    return inv_factorial(*start)*inv_factorial_iter<d-1>(start+1);
+  }
+
+
+  template<>
+  REAL inv_factorial_iter<1>(std::array<unsigned int,1>::const_iterator start){
+    return inv_factorial(*start);
   }
 
   template<unsigned int d>
-  std::vector<std::array<unsigned int, d>> partitions(unsigned int n){
-    std::vector<std::array<unsigned int,d>> ans;
-    for(int i=0; i<=n;i++){
-      for(auto p : partitions<d-1>(n-i)){
-        std::array<unsigned int, d> partition;
-        partition[0] = i;
-        std::copy(p.begin(),p.end(), partition.begin()+1);
-        ans.push_back(partition);
-      }
+  REAL inv_factorial(const std::array<unsigned int, d>& n)
+  {
+    return inv_factorial_iter<d>(n.cbegin());
+  }
+  
+  std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k);
+  std::vector<std::vector<unsigned long>> bounded_count(const std::vector<unsigned long>& bound);
+  INTEGER choose(int n, int k);
+// get all partitions of size k of the number n
+std::vector<std::vector<unsigned long>> partitions(const unsigned long n, const unsigned long k){
+  if(k == 1) return std::vector<std::vector<unsigned long>>{{n}};
+  std::vector<std::vector<unsigned long>> ans;
+  for(int i=0; i<=n; i++){
+    for(std::vector<unsigned long> p : partitions(n-i, k-1)){
+      p.push_back(i);
+      ans.push_back(p);
     }
-    return ans;
   }
+  return ans;
+}
 
-  template<>
-  std::vector<std::array<unsigned int, 0>> partitions<0>(unsigned int n){
-    if(n > 0) return std::vector<std::array<unsigned int,0>>();
-    return std::vector<std::array<unsigned int, 0>>{std::array<unsigned int, 0>()};
+
+
+REAL inv_factorial()
+{
+  return 1;
+    
+}
+
+template<unsigned int d>
+std::vector<std::array<unsigned int, d>> partitions(unsigned int n){
+  std::vector<std::array<unsigned int,d>> ans;
+  for(int i=0; i<=n;i++){
+    for(auto p : partitions<d-1>(n-i)){
+      std::array<unsigned int, d> partition;
+      partition[0] = i;
+      std::copy(p.begin(),p.end(), partition.begin()+1);
+      ans.push_back(partition);
+    }
   }
+  return ans;
+}
 
-  template<unsigned int d, class T>
+template<>
+std::vector<std::array<unsigned int, 0>> partitions<0>(unsigned int n){
+  if(n > 0) return std::vector<std::array<unsigned int,0>>();
+  return std::vector<std::array<unsigned int, 0>>{std::array<unsigned int, 0>()};
+}
+
+template<unsigned int d, class T>
 T power(const std::array<T,d>& x, const std::array<unsigned int, d>& alpha){
   T ans=1;
   for(int i=0; i<d; i++){

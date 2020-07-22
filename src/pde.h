@@ -55,34 +55,34 @@ namespace iRRAM{
         (*this)(k,0) = std::make_shared<Powerseries<1,REAL>>(
           [k, series] (const std::array<unsigned int, 1>& index) {return series->get_coefficient(k,index[0]);},
           [r,M] (const std::array<unsigned int, 1>& index) {return M/power(r,index[0]);},
-          center, r
+          center, r,M
           );
       }
     }
-    Pde_local_solution(const std::array<MVFunction<d,e,e,T>, d>& f, const MVFunction<d,e,1,T>& v, const std::array<T,d>& x) {
-      auto vx = v(x);
-      std::array<T,d> center;
-      for(int i=0; i<d; i++)
-        center[i] = vx(i,0);
-      std::array<MVPowerseries<d,e,e,T>, d> ps;
-      MVPowerseries<d,e,1,T> vps = toPowerseries<d,e,1,T>(v,center,1);
-      for(int i=0; i<d; i++)
-        ps[i] = toPowerseries<d,e,e,T>(f[i], center,1);
-      auto fradius = 1;
-      std::array<unsigned int,d> z{};
-      auto fM = ps[0].get_bound(z);
-      auto r = (fradius/(REAL(int(d))*fM));
-      auto M = fradius;
-      auto series = std::make_shared<Pde_solution_series<e,d,T>>(ps,vps,x);
-      std::array<T,1> zero ={{0}};
-      for(int k=0; k<e;k++){
-        (*this)(k,0) = std::make_shared<Powerseries<1,REAL>>(
-          [k, series] (const std::array<unsigned int, 1>& index) {return series->get_coefficient(k,index[0]);},
-          [r,M] (const std::array<unsigned int, 1>& index) {return M/power(r,index[0]);},
-          zero, r
-          );
-      }
-    }
+    //   Pde_local_solution(const std::array<MVFunction<d,e,e,T>, d>& f, const MVFunction<d,e,1,T>& v, const std::array<T,d>& x) {
+    //     auto vx = v(x);
+    //     std::array<T,d> center;
+    //     for(int i=0; i<d; i++)
+    //       center[i] = vx(i,0);
+    //     std::array<MVPowerseries<d,e,e,T>, d> ps;
+    //     MVPowerseries<d,e,1,T> vps = toPowerseries<d,e,1,T>(v,center,1);
+    //     for(int i=0; i<d; i++)
+    //       ps[i] = toPowerseries<d,e,e,T>(f[i], center,1);
+    //     auto fradius = 1;
+    //     std::array<unsigned int,d> z{};
+    //     auto fM = maximum(ps[0].get_bound(z),1);
+    //     auto r = (fradius/(REAL(int(d))*fM));
+    //     auto M = fradius;
+    //     auto series  = std::make_shared<Pde_solution_series<e,d,T>>(ps,vps,x);
+    //     std::array<T,1> zero ={{0}};
+    //     for(int k=0; k<e;k++){
+    //       (*this)(k,0) = std::make_shared<Powerseries<1,REAL>>(
+    //         [k, series] (const std::array<unsigned int, 1>& index) {return series->get_coefficient(k,index[0]);},
+    //         [r,M] (const std::array<unsigned int, 1>& index) {return M/power(r,index[0]);},
+    //         zero, r
+    //         );
+    //     }
+    //   }
   };
 }
 #endif

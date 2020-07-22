@@ -2,8 +2,18 @@
 #define POWERSERIES_H
 #include <iRRAM.h>
 #include "cinfinity.h"
+#include <numeric>
 namespace iRRAM{
 
+  // euclidean norm
+  template<unsigned int d>
+  REAL norm2(const std::array<REAL,d>& x){
+    REAL ans=0;
+    for(int i = 0; i<d; i++){
+      ans += x[i]*x[i];
+    }
+    return sqrt(ans);
+  }
   REAL error_to_real(const REAL& x)
   {
     sizetype r;
@@ -137,9 +147,18 @@ namespace iRRAM{
         ans *= FactorCache::get_factor(n[i], m[i]);
       return ans;
     }
+    REAL get_bound_complex(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const{
+      REAL r = get_radius();
+      REAL dist = r-norm2<d>(x);
+      if(dist < 0){
+        cout << "Warning: radius too small" << std::endl;
+      }
+      unsigned int k = std::accumulate(index.begin(), index.end(), 0);
+      return M*power(r, d)/power(dist,k+d);
+    }
   protected:
     std::array<T,d> center;
-    REAL radius;
+    REAL radius,M;
     virtual T get_coefficient_raw(const std::array<unsigned int, d>& index) const{
       return coeff_fun(index);
     }
@@ -150,17 +169,17 @@ namespace iRRAM{
       return coeffs.size();
     }
   public:
-    Powerseries<d,T>(const std::shared_ptr<Cinfinity<d,T>>& f, const std::array<T,d>& center, const REAL& radius) : center(center), radius(radius) {
+    Powerseries<d,T>(const std::shared_ptr<Cinfinity<d,T>>& f, const std::array<T,d>& center, const REAL& radius, const REAL& M) : center(center), radius(radius), M(M) {
       coeff_fun = [f,center] (const std::array<unsigned int,d>& index) {return inv_factorial<d>(index)*f->evaluate(index,center);};
       bound_fun = [f,center,radius] (const std::array<unsigned int,d>& index) {return f->get_bound({index},center,radius);};
     }
-    Powerseries<d,T>() : Powerseries(std::make_shared<Cinfinity<d,T>>(), {0},0){}
-    Powerseries<d,T>(const Powerseries<d,T>& ps) : center(ps.get_center()), radius(ps.get_radius()){
+    Powerseries<d,T>() : Powerseries(std::make_shared<Cinfinity<d,T>>(), {0},100000, 0){}
+    Powerseries<d,T>(const Powerseries<d,T>& ps) : center(ps.get_center()), radius(ps.get_radius()), M(ps.get_M()){
       coeff_fun = [&ps] (const std::array<unsigned int,d>& index) {return ps.get_coefficient(index);};
       bound_fun = [&ps] (const std::array<unsigned int,d>& index) {return ps.get_bound(index);};
     }
 
-    Powerseries<d,T>(const std::function<T(const std::array<unsigned int,d>&)>& coeff_fun, const std::function<REAL(const std::array<unsigned int, d>&)>& bound_fun, const std::array<T,1>& center, const REAL& radius) :  coeff_fun(coeff_fun), bound_fun(bound_fun),center(center), radius(radius) {
+    Powerseries<d,T>(const std::function<T(const std::array<unsigned int,d>&)>& coeff_fun, const std::function<REAL(const std::array<unsigned int, d>&)>& bound_fun, const std::array<T,1>& center, const REAL& radius, const REAL& M) :  coeff_fun(coeff_fun), bound_fun(bound_fun),center(center), radius(radius), M(M) {
     }
 
     T get_coefficient(const std::array<unsigned int,d>& index) const{
@@ -202,9 +221,11 @@ namespace iRRAM{
 
     std::array<T,d> get_center() const {return center;}
     REAL get_radius() const {return radius;}
+    REAL get_M() const {return M;}
     T evaluate(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const override{
       return sum(index,x);
     }
+
     T sum(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const {
       std::array<T, d> xc;
       std::transform(x.begin(), x.end(), center.begin(),xc.begin(), std::minus<T>());
@@ -214,7 +235,8 @@ namespace iRRAM{
       for(auto p : partitions<d>(1)){
         std::array<unsigned int,d> p2;
         std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
-        error += get_bound(p2)*power<d,T>(xc,p2);
+        REAL bnd = minimum(get_bound(p2), get_bound_complex(p2, x));
+        error += bnd*power<d,T>(xc,p2);
       }
       int i = 0;
       sizetype trunc_error = real_to_error(error), sum_error,total_error;
@@ -232,7 +254,8 @@ namespace iRRAM{
         for(auto p : partitions<d>(i+1)){
           std::array<unsigned int,d> p2;
           std::transform(index.begin(), index.end(), p.begin(),p2.begin(), std::plus<unsigned int>());
-          error += inv_factorial<d>(p)*get_bound(p2)*power<d,T>(xc,p2);
+          REAL bnd = minimum(inv_factorial<d>(p)*get_bound(p2), get_bound_complex(p2, x));
+          error += bnd*power<d,T>(xc,p2);
         }
         trunc_error = real_to_error(error);
         sum.geterror(sum_error);
@@ -277,21 +300,21 @@ namespace iRRAM{
   };
 
   template<unsigned int d, class T>
-  CinfinityPtr<d,T> toPowerseries(const CinfinityPtr<d,T>& f, const std::array<T,d> center, const REAL& radius){
-    return std::make_shared<Powerseries<d,T>>(f, center, radius);
+  CinfinityPtr<d,T> toPowerseries(const CinfinityPtr<d,T>& f, const std::array<T,d> center, const REAL& radius, const REAL& M){
+    return std::make_shared<Powerseries<d,T>>(f, center, radius,M);
   }
 
   template<unsigned int d, class T>
   PS_ptr<d,T> operator*(const T& lhs, const PS_ptr<d,T>& rhs){
-    return std::make_shared<Powerseries<d,T>>(lhs*rhs.fun(), rhs->get_center(),rhs->get_radius());
+    return std::make_shared<Powerseries<d,T>>(lhs*rhs.fun(), rhs->get_center(),rhs->get_radius(), rhs->get_M()*lhs);
   }
   template<unsigned int d, class T>
 PS_ptr<d,T> operator*(const PS_ptr<d,T>& lhs, const PS_ptr<d,T>& rhs){
   REAL new_radius = minimum(lhs->get_radius(), rhs->get_radius());
   // for now assume that the center is the same (this should be
   // fixed later)
-  auto new_center = lhs->get_center();
-  return std::make_shared<Powerseries<d,T>>(lhs.fun()*rhs.fun(), new_center,new_radius);
+  auto new_center = rhs->get_center();
+  return std::make_shared<Powerseries<d,T>>(lhs.fun()*rhs.fun(), new_center,new_radius, rhs->get_M()*lhs->get_M());
 }
 
 template<unsigned int d, class T>
@@ -299,8 +322,8 @@ PS_ptr<d,T> operator+(const PS_ptr<d,T>& lhs, const PS_ptr<d,T>& rhs){
   REAL new_radius = minimum(lhs->get_radius(), rhs->get_radius());
   // for now assume that the center is the same (this should be
   // fixed later)
-  auto new_center = lhs->get_center();
-  return std::make_shared<Powerseries<d,T>>(lhs.fun()+rhs.fun(), new_center,new_radius);
+  auto new_center = rhs->get_center();
+  return std::make_shared<Powerseries<d,T>>(lhs.fun()+rhs.fun(), new_center,new_radius, rhs->get_M()+lhs->get_M());
 }
   
 template <unsigned int d, unsigned int m, unsigned int n, class T>
@@ -356,7 +379,7 @@ public:
     MVPowerseries<d,m,n,T> ans;
     for(unsigned int i=0; i < m; i++){
       for(unsigned int j=0; j < n; j++){
-        ans(i,j) = std::make_shared<Powerseries<d,REAL>>(std::make_shared<Cinfinity<d,REAL>>((*this)(i,j)->derive(index)), (*this)(i,j)->get_center(), (*this)(i,j)->get_radius());;
+        ans(i,j) = std::make_shared<Powerseries<d,REAL>>(std::make_shared<Cinfinity<d,REAL>>((*this)(i,j)->derive(index)), (*this)(i,j)->get_center(), (*this)(i,j)->get_radius(), (*this)(i,j)->get_M());
       }
     }
     return ans;
@@ -394,11 +417,11 @@ MVPowerseries<d,m,n,T> operator*(const MVPowerseries<d,m,n,T>& lhs, const T& rhs
 }
 
 template<unsigned int d, unsigned int m, unsigned int n,class T>
-MVPowerseries<d,m,n,T> toPowerseries(const MVFunction<d,m,n,T>& f, const std::array<T,d> center, const REAL& radius){
+MVPowerseries<d,m,n,T> toPowerseries(const MVFunction<d,m,n,T>& f, const std::array<T,d> center, const REAL& radius, const REAL& M){
   MVPowerseries<d,m,n,T> ans;
   for(int i=0; i<m;i++){
     for(int j=0;j<n;j++){
-      ans(i,j) = std::make_shared<Powerseries<d,T>>(f(i,j), center, radius);
+      ans(i,j) = std::make_shared<Powerseries<d,T>>(f(i,j), center, radius,M);
     }
   }
   return ans;

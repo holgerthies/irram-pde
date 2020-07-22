@@ -6,15 +6,6 @@
 #include <regex>
 #include <sstream>
 namespace iRRAM{
-  template<unsigned int d>
-  REAL norm2(const std::array<REAL,d>& v){
-    REAL ans=0;
-    for(int i = 0; i<d; i++){
-      ans += v[i]*v[i];
-    }
-    return sqrt(ans);
-  }
-
   //forward declarations
   template<unsigned int d, class T>
   class Polynomial;
@@ -202,10 +193,12 @@ namespace iRRAM{
   MVPowerseries<d,m,n,T> P2M(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
     std::array<std::array<PS_ptr<d,T>,n>,m> Mptr;
     std::array<T, d> center{};
+    std::array<unsigned int, d> zero{};
     for(int i=0; i<n; i++){
       for(int j=0; j<m; j++){
-        std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j], variables));
-        std::shared_ptr<Powerseries<d,T>> p = std::make_shared<Powerseries<d,T>>(f,center, 1); 
+        auto poly = new Polynomial<d,T>(M[i][j], variables);
+        std::shared_ptr<Cinfinity<d,T>> f(poly);
+        std::shared_ptr<Powerseries<d,T>> p = std::make_shared<Powerseries<d,T>>(f,center, 1, poly->get_bound(zero,center,1)); 
         Mptr[i][j] = p;
       }
     }

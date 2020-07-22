@@ -104,4 +104,22 @@ template <unsigned int m, unsigned int n, unsigned int k, class T>
 Matrix<m,k,T> operator*(const Matrix<m,n,T>& lhs, const Matrix<n,k,T>& rhs){
   return multiply(lhs,rhs);
 }
+
+template<class T, unsigned int n>
+class vector : public Matrix<1,n,T>{
+  using Matrix<1,n,T>::Matrix;
+public:
+  T operator[](const unsigned int& i){
+    return (*this)(0,i);
+  }
+  vector(std::initializer_list<T> l){
+    int i=0;
+    for(auto x : l){
+      (*this)(0,i++) = x;
+    }
+  }
+  
+  
+};
+
 #endif
