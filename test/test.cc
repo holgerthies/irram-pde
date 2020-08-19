@@ -3,7 +3,7 @@
 #include "operator.h"
 #include "funops.h"
 // #include "matrix.h"
-// #include "powerseries.h"
+#include "powerseries.h"
 // #include "pde.h"
 #include "mfun.h"
 #include "polynomial.h"
@@ -30,7 +30,6 @@ void print(const Matrix<m,n,REAL>& M){
 
 void compute(){
   FactorCache::init();
-
   std::function<REAL(const Multiindex<1>&, const vector<REAL,1>&)> f = [] (auto index, auto x) {
                                                                                            switch(index[0] % 4){
                                                                                            case 0:
@@ -101,9 +100,14 @@ void compute(){
    cout << invcosine->get_derivative({1}) << std::endl;
    cout << 6*invcosine->get_derivative({3}) << std::endl;
    CinfinityPtr<2,REAL> p = std::shared_ptr<Polynomial<2,REAL>>(new Polynomial<2,REAL>("x^2+y^2",{'x','y'}));
-   auto g = compose(invcosine,compose(cosine, compose(sine, compose(cosine, compose(cosine, p)))));
+   auto g = compose(cosine,compose(cosine, compose(sine, compose(cosine, compose(cosine, p)))));
    g->set_center({1,0.5});
-   cout << p->get_derivative({2,0}) << std::endl;
+   auto ps = to_powerseries(compose(cosine,p), {1,2}, 1,1);
+   auto ps_trunc = ps->get_truncated_series(10);
+   ps_trunc.print({'x', 'y'});
+   cout << ps_trunc({0.2,-0.4}) << std::endl;
+   cout << ps({1.2,1.6}) << std::endl;
+   cout << ps->get_cache_size() << std::endl;
    // auto p2 = p*p;
    // p2->set_center({1,0.5});
    // cout << p->get_derivative({0,1}) << std::endl;
@@ -115,10 +119,11 @@ void compute(){
    cout << g->get_derivative({1,0}) << std::endl;
    cout << g->get_derivative({0,1}) << std::endl;
    cout << g->get_derivative({1,1}) << std::endl;
-   cout << g->get_derivative({2,4}) << std::endl;
-   MVFunction<1,2,2,REAL> M({{{sine, cosine}, {(sine+cosine)/sine, cosine}}});
-   M.set_center({pi()/2});
-   print(M.get_derivative({3}));
+   cout << g->get_derivative({1,4}) << std::endl;
+   MVFunction<1,2,2,REAL> M({{{sine, compose(sine, cosine)}, {(sine+cosine)/sine, cosine}}});
+   // auto M2 = derive(M,{20});
+   // M2.set_center({pi()/2});
+   // print(M2.get_derivative({3}));
    // cout << (*(sine+REAL(2)*sine-sine+sine-sine-sine-sine+sine*sine*(REAL(1)-(sine+sine))*(sine+sine+REAL(1))))({pi()/2}) << std::endl; 
    // auto cose = std::make_shared<Cinfinity<1,REAL>>(sine->derive({1}));
    // cout << (*cose)({{pi()}}) << std::endl; 

@@ -120,6 +120,19 @@ namespace iRRAM{
         coeffs[i] = Polynomial<d-1,REAL>(substr[i], vars);
       }
     }
+
+    T operator()(const vector<T,d>& x) const{
+      Multiindex<d> zero{};
+      return evaluate(zero, x);
+    }
+
+    void set_coefficient(const Multiindex<d>& index, const T& value){
+      if(coeffs.size() <= index[0]){
+        coeffs.resize(index[0]+1);
+      }
+      coeffs[index[0]].set_coefficient(remove_first(index),value);
+    }
+    
     void print(const std::array<char,d>& variables, const bool endline = true){
       std::array<char, d-1> vars;
       std::copy(variables.begin()+1, variables.end(), vars.begin());
@@ -169,15 +182,12 @@ namespace iRRAM{
       cout << value.as_double(2);
       if(endline) cout << std::endl;
     }
+    void set_coefficient(const Multiindex<0>& index, const T& value){
+      this->value = value;
+    }
     template<class D>
     friend Polynomial<0,D> operator*(const D& lhs, const Polynomial<0,D>& rhs);
   };
-  template<class T>
-  Polynomial<1,T> monomial(const unsigned int index){
-    std::vector<Polynomial<0,T>> coeffs(index+1);
-    coeffs[index] = Polynomial<0,T>(1); 
-    return Polynomial<1,T>(coeffs);
-  }
 
 // scalar multiplication
   template <unsigned int d, class T>

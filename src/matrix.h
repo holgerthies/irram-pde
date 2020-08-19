@@ -109,8 +109,11 @@ template<class T, unsigned int n>
 class vector : public Matrix<1,n,T>{
   using Matrix<1,n,T>::Matrix;
 public:
-  T operator[](const unsigned int& i){
+  T operator[](const unsigned int& i) const{
     return (*this)(0,i);
+  }
+  vector(const Matrix<1,n,T>& v){
+    this->M = v.M;
   }
   vector(std::initializer_list<T> l){
     int i=0;
@@ -118,8 +121,36 @@ public:
       (*this)(0,i++) = x;
     }
   }
-  
-  
 };
 
+template<unsigned int d, class T>
+T power(const vector<T,d>& x, const iRRAM::Multiindex<d>& alpha){
+  T ans=1;
+  for(int i=0; i<d; i++){
+    ans *= power(x[i], alpha[i]);
+  }
+  return ans;
+}
+
+namespace iRRAM{
+// euclidean norm
+  template<unsigned int d>
+  REAL norm2(const vector<REAL,d>& x){
+    REAL ans=0;
+    for(int i = 0; i<d; i++){
+      ans += x[i]*x[i];
+    }
+    return sqrt(ans);
+  }
+
+// infinity norm
+  template<unsigned int d>
+  REAL inf_norm(const vector<REAL,d>& x){
+    REAL ans=x[0];
+    for(int i = 1; i<d; i++){
+      ans = maximum(ans, x[i]);
+    }
+    return ans;
+  }
+}
 #endif
