@@ -39,35 +39,39 @@ namespace iRRAM{
     // T get_bound_raw(const std::array<unsigned int,d>& index) const override{
     //   return get_derivative_bound(index.cbegin(), this->get_radius());
     // }
-    T get_derivative_coefficient(typename std::array<unsigned int,d>::const_iterator index, typename std::array<unsigned int,d>::const_iterator derivative) const{
-      int i = *index+*derivative;
-      if(i > get_degree()) return 0;
-      auto ans = FactorCache::get_factor(i,*derivative)*coeffs[i].get_derivative_coefficient(index+1, derivative+1);
-      return ans;
-    }
-    T get_derivative_bound(typename std::array<unsigned int,d>::const_iterator index, const REAL& r) const{
+    // T get_derivative_coefficient(typename std::array<unsigned int,d>::const_iterator index, typename std::array<unsigned int,d>::const_iterator derivative) const{
+    //   int i = *index+*derivative;
+    //   if(i > get_degree()) return 0;
+    //   auto ans = FactorCache::get_factor(i,*derivative)*coeffs[i].get_derivative_coefficient(index+1, derivative+1);
+    //   return ans;
+    // }
+    // T get_derivative_bound(typename std::array<unsigned int,d>::const_iterator index, const REAL& r) const{
+    //   REAL ans = 0;
+    //   for(int i=get_degree()-*index; i>=0; i--){
+    //     ans = FactorCache::get_factor(*index+i,*index)*coeffs[*index+i].get_derivative_bound(index+1, r)+abs(ans)*r;
+    //   }
+    //   return ans;
+    // }
+    // REAL get_bound(const std::array<unsigned int, d>& index, const std::array<T,d>& x, const REAL& eps) const override{
+    //   return get_derivative_bound(index.begin(), norm2<d>(x)+eps);
+    // }
+    T eval_iter(typename Multiindex<d>::const_iterator index, typename std::array<T,d>::const_iterator x) const{
       REAL ans = 0;
       for(int i=get_degree()-*index; i>=0; i--){
-        ans = FactorCache::get_factor(*index+i,*index)*coeffs[*index+i].get_derivative_bound(index+1, r)+abs(ans)*r;
+        ans = REAL(choose((unsigned int)(*index+i),(unsigned int)(i)))*coeffs[*index+i].eval_iter(index+1, x+1)+ans*(*x);
       }
       return ans;
     }
-    T eval_iter(typename std::array<unsigned int,d>::const_iterator index, typename std::array<T,d>::const_iterator x) const{
-      REAL ans = 0;
-      for(int i=get_degree()-*index; i>=0; i--){
-        ans = FactorCache::get_factor(*index+i,*index)*coeffs[*index+i].eval_iter(index+1, x+1)+ans*(*x);
-      }
-      return ans;
+    T evaluate(const Multiindex<d>& index, const vector<T,d>& x) const {
+      return eval_iter(index.begin(),x.M[0].begin());
     }
+
+    T get_derivative_raw(const Multiindex<d>& index) const override{
+      return evaluate(index, this->get_center());
+    }
+
   public:
 
-    T evaluate(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const override{
-      return eval_iter(index.begin(),x.begin());
-    }
-
-     REAL get_bound(const std::array<unsigned int, d>& index, const std::array<T,d>& x, const REAL& eps) const override{
-       return get_derivative_bound(index.begin(), norm2<d>(x)+eps);
-    }
 
     int get_degree() const {
       return coeffs.size()-1;
@@ -76,6 +80,10 @@ namespace iRRAM{
     }
     Polynomial(const std::vector<coeff_type>& coeffs) : coeffs(coeffs){
     }
+    CinfinityPtr<d,T> deep_copy() override{
+      return std::make_shared<Polynomial<d,T>>(coeffs);
+    }
+
     Polynomial(const std::string& s, const std::array<char,d>& variables){
       std::stringstream ss(s);
       std::string token;
@@ -137,13 +145,13 @@ namespace iRRAM{
   class Polynomial<0,T>  {
   private:
     T value;
-    T get_derivative_coefficient(typename std::array<unsigned int,0>::const_iterator index, typename std::array<unsigned int,0>::const_iterator derivative) const{
-      return value;
-    }
-    T get_derivative_bound(typename std::array<unsigned int,0>::const_iterator index, const REAL& r) const{
-      return value;
-    }
-    T eval_iter(typename std::array<unsigned int,0>::const_iterator index, typename std::array<T,0>::const_iterator x) const{
+    // T get_derivative_coefficient(typename std::array<unsigned int,0>::const_iterator index, typename std::array<unsigned int,0>::const_iterator derivative) const{
+    //   return value;
+    // }
+    // T get_derivative_bound(typename std::array<unsigned int,0>::const_iterator index, const REAL& r) const{
+    //   return value;
+    // }
+    T eval_iter(typename Multiindex<0>::const_iterator index, typename std::array<T,0>::const_iterator x) const{
       return value;
     }
     friend class Polynomial<1,T>;
@@ -189,31 +197,31 @@ namespace iRRAM{
   Polynomial<d,T> operator*(Polynomial<d,T> const& lhs,const T& rhs){
     return rhs*lhs;
   }
-  template<unsigned int d, unsigned int m, unsigned int n,class T>
-  MVPowerseries<d,m,n,T> P2M(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
-    std::array<std::array<PS_ptr<d,T>,n>,m> Mptr;
-    std::array<T, d> center{};
-    std::array<unsigned int, d> zero{};
-    for(int i=0; i<n; i++){
-      for(int j=0; j<m; j++){
-        auto poly = new Polynomial<d,T>(M[i][j], variables);
-        std::shared_ptr<Cinfinity<d,T>> f(poly);
-        std::shared_ptr<Powerseries<d,T>> p = std::make_shared<Powerseries<d,T>>(f,center, 1, poly->get_bound(zero,center,1)); 
-        Mptr[i][j] = p;
-      }
-    }
-    return MVPowerseries<d,m,n,T>(Mptr);
-  }
-  template<unsigned int d, unsigned int m, unsigned int n,class T>
-  MVFunction<d,m,n,T> P2MF(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
-    std::array<std::array<CinfinityPtr<d,T>,n>,m> Mptr;
-    for(int i=0; i<n; i++){
-      for(int j=0; j<m; j++){
-        std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j], variables));
-        Mptr[i][j] = f;
-      }
-    }
-    return MVFunction<d,m,n,T>(Mptr);
-  }
+  // template<unsigned int d, unsigned int m, unsigned int n,class T>
+  // MVPowerseries<d,m,n,T> P2M(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
+  //   std::array<std::array<PS_ptr<d,T>,n>,m> Mptr;
+  //   std::array<T, d> center{};
+  //   std::array<unsigned int, d> zero{};
+  //   for(int i=0; i<n; i++){
+  //     for(int j=0; j<m; j++){
+  //       auto poly = new Polynomial<d,T>(M[i][j], variables);
+  //       std::shared_ptr<Cinfinity<d,T>> f(poly);
+  //       std::shared_ptr<Powerseries<d,T>> p = std::make_shared<Powerseries<d,T>>(f,center, 1, poly->get_bound(zero,center,1)); 
+  //       Mptr[i][j] = p;
+  //     }
+  //   }
+  //   return MVPowerseries<d,m,n,T>(Mptr);
+  // }
+  // template<unsigned int d, unsigned int m, unsigned int n,class T>
+  // MVFunction<d,m,n,T> P2MF(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
+  //   std::array<std::array<CinfinityPtr<d,T>,n>,m> Mptr;
+  //   for(int i=0; i<n; i++){
+  //     for(int j=0; j<m; j++){
+  //       std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j], variables));
+  //       Mptr[i][j] = f;
+  //     }
+  //   }
+  //   return MVFunction<d,m,n,T>(Mptr);
+  // }
 }
 #endif

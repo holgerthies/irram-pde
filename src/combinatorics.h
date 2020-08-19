@@ -15,12 +15,22 @@ namespace iRRAM{
     // template<typename ...E>
     // Multiindex(E&&... e) : std::array<int,d>{{std::forward<E>(e)...}} {}
     Multiindex(std::initializer_list<int> l) {
+      for(int j=0; j<d; j++)
+        (*this)[j] = 0;
       int i=0;
       for(auto n : l){
         (*this)[i++] = n;
       }
     }
   };
+
+  template<unsigned int d>
+  bool is_zero(const Multiindex<d>& index){
+    for(auto i : index){
+      if(i != 0) return false;
+    }
+    return true;
+  }
 
   template<unsigned int d>
   Multiindex<d> operator+(const Multiindex<d>& lhs, const Multiindex<d>& rhs){
@@ -227,5 +237,46 @@ REAL inv_factorial(const int n){
 REAL inv_factorial(const unsigned int n){
   return inv_factorial(int(n));
 }
+
+  // caches n*(n-1)*..*(n-m+1)
+  class FactorCache{
+  private:
+    FactorCache() = default;
+    ~FactorCache() = default;
+    static FactorCache* instance;
+    std::vector<std::vector<REAL>> factor_cache;
+  public:
+    static void init(){
+      instance = new FactorCache();
+    }
+
+    REAL factor(int n, int m){
+      while(factor_cache.size() <= n){
+        factor_cache.push_back({1});
+      }
+      while(factor_cache[n].size() <= m){
+        int j = factor_cache[n].size();
+        factor_cache[n].push_back(factor_cache[n][j-1]*REAL(n-j+1));
+      }
+      return factor_cache[n][m];
+    }
+    static REAL get_factor(int n, int m){
+      return instance->factor(n,m);
+    }
+    static auto get_size(){
+      return instance->factor_cache.size();
+    }
+  };
+  FactorCache* FactorCache::instance = 0;
+
+  // computes (alpha+beta)!/(alpha!)
+  template<unsigned int d>
+  REAL get_derivative_factor(Multiindex<d> alpha, Multiindex<d> beta){
+    REAL ans=1;
+    for(int i=0; i<d;i++){
+      ans *= FactorCache::get_factor(alpha[i]+beta[i], alpha[i]); 
+    }
+    return ans;
+  }
 }
 #endif
