@@ -7,6 +7,7 @@
 // #include "pde.h"
 #include "mfun.h"
 #include "polynomial.h"
+#include "diffop.h"
 using namespace iRRAM;
 template<unsigned int m, unsigned int n>
 void print(const Matrix<m,n,REAL>& M){
@@ -76,51 +77,63 @@ void compute(){
    auto cosine = derive(sine, {1});
    auto invcosine = invert(cosine);
    auto sf = REAL(2)*sine*sine+sine*REAL(3)-REAL(2)-((REAL(2)-sine/REAL(2)+REAL(2)/cosine)/(sine+cosine));
-   cout << sine->get_derivative({0}) << std::endl;
-   cout << sine->get_derivative({1}) << std::endl;
-   cout << 6*sine->get_derivative({3}) << std::endl;
-   cout << "cos" << std::endl;
-   cout << cosine->get_derivative({0}) << std::endl;
-   cout << cosine->get_derivative({1}) << std::endl;
-   cout << 2*cosine->get_derivative({2}) << std::endl;
-   cout << 6*cosine->get_derivative({3}) << std::endl;
-   cout << 24*cosine->get_derivative({4}) << std::endl;
-   cout << "s" << std::endl;
-   cout << sf->get_derivative({0}) << std::endl;
-   cout << sf->get_derivative({1}) << std::endl;
-   cout << 6*sf->get_derivative({3}) << std::endl;
-   cout << "a" << std::endl;
-   sf->set_center({REAL(0.4)});
-   cout << sf->get_derivative({0}) << std::endl;
-   cout << sf->get_derivative({1}) << std::endl;
-   cout << 6*sf->get_derivative({3}) << std::endl;
-   cout << "b" << std::endl;
-   invcosine->set_center({REAL(0.4)});
-   cout << invcosine->get_derivative({0}) << std::endl;
-   cout << invcosine->get_derivative({1}) << std::endl;
-   cout << 6*invcosine->get_derivative({3}) << std::endl;
+   // cout << sine->get_derivative({0}) << std::endl;
+   // cout << sine->get_derivative({1}) << std::endl;
+   // cout << 6*sine->get_derivative({3}) << std::endl;
+   // cout << "cos" << std::endl;
+   // cout << cosine->get_derivative({0}) << std::endl;
+   // cout << cosine->get_derivative({1}) << std::endl;
+   // cout << 2*cosine->get_derivative({2}) << std::endl;
+   // cout << 6*cosine->get_derivative({3}) << std::endl;
+   // cout << 24*cosine->get_derivative({4}) << std::endl;
+   // cout << "s" << std::endl;
+   // cout << sf->get_derivative({0}) << std::endl;
+   // cout << sf->get_derivative({1}) << std::endl;
+   // cout << 6*sf->get_derivative({3}) << std::endl;
+   // cout << "a" << std::endl;
+   // sf->set_center({REAL(0.4)});
+   // cout << sf->get_derivative({0}) << std::endl;
+   // cout << sf->get_derivative({1}) << std::endl;
+   // cout << 6*sf->get_derivative({3}) << std::endl;
+   // cout << "b" << std::endl;
+   // invcosine->set_center({REAL(0.4)});
+   // cout << invcosine->get_derivative({0}) << std::endl;
+   // cout << invcosine->get_derivative({1}) << std::endl;
+   // cout << 6*invcosine->get_derivative({3}) << std::endl;
    CinfinityPtr<2,REAL> p = std::shared_ptr<Polynomial<2,REAL>>(new Polynomial<2,REAL>("x^2+y^2",{'x','y'}));
-   auto g = compose(cosine,compose(cosine, compose(sine, compose(cosine, compose(cosine, p)))));
-   g->set_center({1,0.5});
-   auto ps = to_powerseries(compose(cosine,p), {1,2}, 1,1);
-   auto ps_trunc = ps->get_truncated_series(10);
-   ps_trunc.print({'x', 'y'});
-   cout << ps_trunc({0.2,-0.4}) << std::endl;
-   cout << ps({1.2,1.6}) << std::endl;
-   cout << ps->get_cache_size() << std::endl;
+   MVFunction<2,3,3,REAL> M({{
+       {compose(cosine,p), compose(sine,p), p},
+       {p, p*p*p, p*p},
+       {compose(sine,p), p, p}}});
+   MVFunction<2,3,1,REAL> v({{{compose(cosine,p)}, {compose(sine,p)}, {p*p*p}}});
+   v.set_center({1,2});
+   print(v.get_center());
+   auto vp = derive(v, {4,0});
+   auto d = M*diff<2,3,REAL>(1,4);
+   auto dM = d(v);
+   print(vp.get_derivative({0,0}));
+   print(dM.get_derivative({0,0}));
+   // auto g = compose(cosine,compose(cosine, compose(sine, compose(cosine, compose(cosine, p)))));
+   // g->set_center({1,0.5});
+   // auto ps = to_powerseries(compose(cosine,p), {1,2}, 1,1);
+   // auto ps_trunc = ps->get_truncated_series(10);
+   // ps_trunc.print({'x', 'y'});
+   // cout << ps_trunc({0.2,-0.4}) << std::endl;
+   // cout << ps({1.2,1.6}) << std::endl;
+   // cout << ps->get_cache_size() << std::endl;
    // auto p2 = p*p;
    // p2->set_center({1,0.5});
    // cout << p->get_derivative({0,1}) << std::endl;
    // cout << p->get_derivative({1,0}) << std::endl;
    // cout << p->get_derivative({2,0}) << std::endl;
    // cout << p->get_derivative({0,2}) << std::endl;
-   cout << "comp" << std::endl;
-   cout << g->get_derivative({0,0}) << std::endl;
-   cout << g->get_derivative({1,0}) << std::endl;
-   cout << g->get_derivative({0,1}) << std::endl;
-   cout << g->get_derivative({1,1}) << std::endl;
-   cout << g->get_derivative({1,4}) << std::endl;
-   MVFunction<1,2,2,REAL> M({{{sine, compose(sine, cosine)}, {(sine+cosine)/sine, cosine}}});
+   // cout << "comp" << std::endl;
+   // cout << g->get_derivative({0,0}) << std::endl;
+   // cout << g->get_derivative({1,0}) << std::endl;
+   // cout << g->get_derivative({0,1}) << std::endl;
+   // cout << g->get_derivative({1,1}) << std::endl;
+   // cout << g->get_derivative({1,4}) << std::endl;
+   // MVFunction<1,2,2,REAL> M({{{sine, compose(sine, cosine)}, {(sine+cosine)/sine, cosine}}});
    // auto M2 = derive(M,{20});
    // M2.set_center({pi()/2});
    // print(M2.get_derivative({3}));

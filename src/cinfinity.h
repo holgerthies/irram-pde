@@ -106,14 +106,16 @@ namespace iRRAM{
       coeff_cache.clear();
     }
   public:
-    Cinfinity() : f([] (auto index, auto x) {return 0;})  {}
-    Cinfinity(const fun_type &f): f(f) {}
+    Cinfinity() : center{}, f([] (auto index, auto x) {return 0;})  {}
+    Cinfinity(const fun_type &f): center{}, f(f) {}
     Cinfinity(const fun_type &f, const vector<T,d>& center): center(center), f(f) {}
+    Cinfinity(const T& c) :  center{}, f([c] (auto index, auto x) {return (is_zero(index)) ? c : 0;})  {}
     virtual ~Cinfinity() = default;
     T operator()() const;
 
     void set_center(const vector<T,d>& new_center){
       update_center(new_center);
+      this->center = new_center;
       clear_coeffs();
     }
 

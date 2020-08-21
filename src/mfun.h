@@ -13,14 +13,25 @@ namespace iRRAM{
   public:
     using Matrix<m,n,CinfinityPtr<d,T>>::Matrix;
     MVFunction(const Matrix<m,n,CinfinityPtr<d,T>>& M) : Matrix<m,n,CinfinityPtr<d,T>>(M) {};
+    MVFunction() {
+      for(int i=0; i<m;i++){
+        for(int j=0; j<n; j++){
+          (*this)(i,j) = std::make_shared<Cinfinity<d,T>>();
+        }
+      }
+    };
     using Matrix<m,n,CinfinityPtr<d,T>>::operator();
 
     void set_center(const vector<T,d>& new_center){
       for(int i=0; i<m; i++){
-        for(int j=0; j<m; j++){
+        for(int j=0; j<n; j++){
           (*this)(i,j)->set_center(new_center);
         }
       }
+    }
+
+    vector<T,d> get_center() const{
+      return (*this)(0,0)->get_center();
     }
     
     Matrix<m,n,T> get_derivative(const  Multiindex<d>& index) const{
@@ -54,7 +65,7 @@ MVFunction<d,m,n,T> operator-(const MVFunction<d,m,n,T>& lhs, const MVFunction<d
 
 template <unsigned int d, unsigned int m, unsigned int n, unsigned int k, class T>
 MVFunction<d,m,k,T> operator*(const MVFunction<d,m,n,T>& lhs, const MVFunction<d,n,k,T>& rhs){
-  return multiply(lhs,rhs);
+  return multiply(MVFunction<d,m,k,T>(), lhs,rhs);
 }
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const T& lhs, const MVFunction<d,m,n,T>& rhs){
@@ -63,6 +74,15 @@ MVFunction<d,m,n,T> operator*(const T& lhs, const MVFunction<d,m,n,T>& rhs){
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const MVFunction<d,m,n,T>& lhs, const T& rhs){
   return multiply(lhs,rhs);
+}
+
+template <unsigned int d, unsigned int e, class T>
+MVFunction<d,e,e,T> identity(){
+  MVFunction<d,e,e,T> ans;
+  for(int i=0; i<e; i++){
+    ans(i,i) = std::make_shared<Cinfinity<d,T>>(REAL(1));
+  }
+  return ans;
 }
 
   template <unsigned int d, unsigned int m, unsigned int n, class T>

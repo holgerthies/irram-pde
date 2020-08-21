@@ -4,15 +4,6 @@
 #include "cinfinity.h"
 namespace iRRAM{
   // euclidean norm
-  template<unsigned int d>
-  REAL norm2(const Matrix<d,1,REAL>& v){
-    REAL ans=0;
-    for(int i = 0; i<d; i++){
-      ans += v(i,0)*v(i,0);
-    }
-    return sqrt(ans);
-  }
-
   template<unsigned int e, unsigned int d, class T>
   class Pde_solution_series{
   private:

@@ -6,8 +6,8 @@ class Matrix{
 private:
 public:
   std::array<std::array<T, n>,m> M;
-  Matrix<m,n,T>() {};
-  Matrix<m,n,T>(const std::array<std::array<T,n>,m>& M) : M(M) {};
+  Matrix<m,n,T>()  {}
+  Matrix<m,n,T>(const std::array<std::array<T,n>,m>& M) : M(M) {}
   T& operator()(const unsigned int i, const unsigned int j) {
     return M[i][j];
   } 
@@ -71,18 +71,23 @@ Matrix<m,n,T> Matrix<m,n,T>::operator-(){
 // multiplication
 
   template <unsigned int m, unsigned int n, unsigned int k, class T>
-  Matrix<m,k,T> multiply(const Matrix<m,n,T>& lhs, const Matrix<n,k,T>& rhs){
-    Matrix<m,k,T> ans;
+  Matrix<m,k,T> multiply(const Matrix<m,k,T>& empty, const Matrix<m,n,T>& lhs, const Matrix<n,k,T>& rhs){
+    Matrix<m,k,T> ans = empty;
     for(unsigned int i=0; i<m;i++){
       for(unsigned int j=0;j<k;j++){
         for(unsigned int v=0; v<n; v++){
-          ans(i,j) += lhs(i,v)*rhs(v,j);
+          ans(i,j) = ans(i,j) + lhs(i,v)*rhs(v,j);
         }
       }
     }
     return ans;
   }
 
+  template <unsigned int m, unsigned int n, unsigned int k, class T>
+  Matrix<m,k,T> multiply(const Matrix<m,n,T>& lhs, const Matrix<n,k,T>& rhs){
+    Matrix<m,k,T> empty;
+    return multiply(empty, lhs,rhs);
+  }
 
 template <unsigned int m, unsigned int n, class T>
 Matrix<m,n,T> operator+(const Matrix<m,n,T>& lhs, const Matrix<m,n,T>& rhs){
