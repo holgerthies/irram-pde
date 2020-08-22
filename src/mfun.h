@@ -44,6 +44,10 @@ namespace iRRAM{
       return ans;
     }
     MVFunction<d,m,n,T> operator-();
+    MVFunction<d,m,n,T>& operator+=(const MVFunction<d,m,n,T>& f){
+      *this = *this + f;
+      return *this;
+    }
   };
 
 
@@ -69,7 +73,14 @@ MVFunction<d,m,k,T> operator*(const MVFunction<d,m,n,T>& lhs, const MVFunction<d
 }
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const T& lhs, const MVFunction<d,m,n,T>& rhs){
-  return multiply(lhs,rhs);
+  MVFunction<d,m,n,T> ans;
+    for(int i=0; i<m;i++){
+      for(int j=0;j<n;j++){
+        ans(i,j) = lhs*rhs(i,j);
+      }
+    }
+    return ans;
+
 }
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const MVFunction<d,m,n,T>& lhs, const T& rhs){

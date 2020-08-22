@@ -4,10 +4,10 @@
 #include "funops.h"
 // #include "matrix.h"
 #include "powerseries.h"
-// #include "pde.h"
 #include "mfun.h"
 #include "polynomial.h"
 #include "diffop.h"
+#include "pde.h"
 using namespace iRRAM;
 template<unsigned int m, unsigned int n>
 void print(const Matrix<m,n,REAL>& M){
@@ -101,17 +101,38 @@ void compute(){
    // cout << invcosine->get_derivative({1}) << std::endl;
    // cout << 6*invcosine->get_derivative({3}) << std::endl;
    CinfinityPtr<2,REAL> p = std::shared_ptr<Polynomial<2,REAL>>(new Polynomial<2,REAL>("x^2+y^2",{'x','y'}));
-   MVFunction<2,3,3,REAL> M({{
-       {compose(cosine,p), compose(sine,p), p},
+   MVFunction<2,3,3,REAL> M1({{
+       {p, p, p},
        {p, p*p*p, p*p},
-       {compose(sine,p), p, p}}});
+       {p*p, p, p}}});
+   MVFunction<2,3,3,REAL> M2({{
+       {p, p-p, p},
+       {p-p, p-p, p-p},
+       {p-p, p-p, p}}});
    MVFunction<2,3,1,REAL> v({{{compose(cosine,p)}, {compose(sine,p)}, {p*p*p}}});
    v.set_center({1,2});
-   print(v.get_center());
    auto vp = derive(v, {4,0});
-   auto d = M*diff<2,3,REAL>(1,4);
+   auto d1 = DifferentialOperator<2,3,REAL>({1,0},M1);
+   auto d2 = DifferentialOperator<2,3,REAL>({0,1},M2);
+   auto d = d1+d2+d2+d2+d1+d2+d2+d2;
+   auto sol = Pde_solution_series<2,3,REAL>(d,v,{1,2});
+   cout << sol.get_coefficient(0,4) << std::endl;
    auto dM = d(v);
-   print(vp.get_derivative({0,0}));
+   dM.set_center({0,0});
+   print(dM.get_center());
+   cout<<"___"<<std::endl;
+   print(dM.get_derivative({0,0}));
+
+   dM.set_center({1,2});
+   cout<<"___"<<std::endl;
+   print(dM.get_center());
+   cout<<"___"<<std::endl;
+   print(dM.get_derivative({0,0}));
+
+   dM.set_center({2,0});
+   cout<<"___"<<std::endl;
+   print(dM.get_center());
+   cout<<"___"<<std::endl;
    print(dM.get_derivative({0,0}));
    // auto g = compose(cosine,compose(cosine, compose(sine, compose(cosine, compose(cosine, p)))));
    // g->set_center({1,0.5});

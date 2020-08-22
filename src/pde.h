@@ -2,54 +2,75 @@
 #define PDE_H
 #include <iRRAM.h>
 #include "cinfinity.h"
+#include "diffop.h"
 namespace iRRAM{
-  // euclidean norm
-  template<unsigned int e, unsigned int d, class T>
+  template<unsigned int d, unsigned int e, class T>
   class Pde_solution_series{
   private:
-    std::array<MVPowerseries<d,e,e,T>, d> f;
-    std::vector<MVPowerseries<d,e,1,T>> v;
-    std::array<T,d> x;
-    MVPowerseries<d,e,1,T> F;
-    unsigned int coeffs=0;
+    DifferentialOperator<d,e,T> D;
+    std::vector<MVFunction<d,e,1,T>> v;
   public:
-    T get_coefficient(unsigned int k, unsigned int i) {
+    T get_coefficient(unsigned int m, unsigned int i) {
       int sz = v.size();
       if(sz <= i) v.resize(i+1);
       for(int j=sz; j<=i; j++){
         for(int k=0; k<d; k++){
-          v[j] = v[j] + (1/REAL(j))*f[k]*(v[j-1].partial_derivative(k+1));
+          v[j] = v[j] + (1/REAL(j))*D(v[j-1]);
         }
       }
-      return v[i](x)(k,0);
+      return v[i](m,0)->get_derivative({0});
     }
 
-    REAL get_bound(unsigned int k, unsigned int i) const {
-      return 1;
+    Pde_solution_series(const DifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x) : D(D), v({v}) {
+      this->v[0].set_center(x);
     }
-
-    Pde_solution_series(const std::array<MVPowerseries<d,e,e,REAL>, d>& f, const MVPowerseries<d,e,1,REAL>& v, const std::array<T,d>& x) : f(f), v({v}), x(x) {}
   };
+  // template<unsigned int e, unsigned int d, class T>
+  // class Pde_solution_series{
+  // private:
+  //   std::array<MVPowerseries<d,e,e,T>, d> f;
+  //   std::vector<MVPowerseries<d,e,1,T>> v;
+  //   std::array<T,d> x;
+  //   MVPowerseries<d,e,1,T> F;
+  //   unsigned int coeffs=0;
+  // public:
+  //   T get_coefficient(unsigned int k, unsigned int i) {
+  //     int sz = v.size();
+  //     if(sz <= i) v.resize(i+1);
+  //     for(int j=sz; j<=i; j++){
+  //       for(int k=0; k<d; k++){
+  //         v[j] = v[j] + (1/REAL(j))*f[k]*(v[j-1].partial_derivative(k+1));
+  //       }
+  //     }
+  //     return v[i](x)(k,0);
+  //   }
 
-  template<unsigned int e, unsigned int d, class T>
-  class Pde_local_solution :public MVPowerseries<1,e,1,T> {
-  public: 
-    Pde_local_solution(const std::array<MVPowerseries<d,e,e,REAL>, d>& f, const MVPowerseries<d,e,1,REAL>& v, const std::array<T,d>& x) {
-      std::array<T,1> center ={{0}};
-      std::array<unsigned int,d> z{};
-      auto fradius = f[0].get_radius() - norm2(v(x));
-      auto fM = f[0].get_bound(z);
-      auto r = (fradius/(REAL(int(d))*fM));
-      auto M = fradius;
-      auto series = std::make_shared<Pde_solution_series<e,d,T>>(f,v,x);
-      for(int k=0; k<e;k++){
-        (*this)(k,0) = std::make_shared<Powerseries<1,REAL>>(
-          [k, series] (const std::array<unsigned int, 1>& index) {return series->get_coefficient(k,index[0]);},
-          [r,M] (const std::array<unsigned int, 1>& index) {return M/power(r,index[0]);},
-          center, r,M
-          );
-      }
-    }
+  //   REAL get_bound(unsigned int k, unsigned int i) const {
+  //     return 1;
+  //   }
+
+  //   Pde_solution_series(const std::array<MVPowerseries<d,e,e,REAL>, d>& f, const MVPowerseries<d,e,1,REAL>& v, const std::array<T,d>& x) : f(f), v({v}), x(x) {}
+  // };
+
+  // template<unsigned int e, unsigned int d, class T>
+  // class Pde_local_solution :public MVPowerseries<1,e,1,T> {
+  // public: 
+  //   Pde_local_solution(const std::array<MVPowerseries<d,e,e,REAL>, d>& f, const MVPowerseries<d,e,1,REAL>& v, const std::array<T,d>& x) {
+  //     std::array<T,1> center ={{0}};
+  //     std::array<unsigned int,d> z{};
+  //     auto fradius = f[0].get_radius() - norm2(v(x));
+  //     auto fM = f[0].get_bound(z);
+  //     auto r = (fradius/(REAL(int(d))*fM));
+  //     auto M = fradius;
+  //     auto series = std::make_shared<Pde_solution_series<e,d,T>>(f,v,x);
+  //     for(int k=0; k<e;k++){
+  //       (*this)(k,0) = std::make_shared<Powerseries<1,REAL>>(
+  //         [k, series] (const std::array<unsigned int, 1>& index) {return series->get_coefficient(k,index[0]);},
+  //         [r,M] (const std::array<unsigned int, 1>& index) {return M/power(r,index[0]);},
+  //         center, r,M
+  //         );
+  //     }
+  //   }
     //   Pde_local_solution(const std::array<MVFunction<d,e,e,T>, d>& f, const MVFunction<d,e,1,T>& v, const std::array<T,d>& x) {
     //     auto vx = v(x);
     //     std::array<T,d> center;
@@ -74,6 +95,5 @@ namespace iRRAM{
     //         );
     //     }
     //   }
-  };
 }
 #endif
