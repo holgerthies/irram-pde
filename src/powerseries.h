@@ -63,11 +63,13 @@ namespace iRRAM{
     REAL radius,M;
   public:
     Powerseries<d,T>(const Powerseries<d,T>& ps) : center(ps.get_center()), radius(ps.get_radius()), M(ps.get_M()){
-      coeff_fun = [&ps] (const std::array<unsigned int,d>& index) {return ps.get_coefficient(index);};
+      coeff_fun = [&ps] (const Multiindex<d>& index) {return ps.get_coefficient(index);};
     }
 
     Powerseries<d,T>(const std::function<T(const Multiindex<d>&)>& coeff_fun, const vector<T,d>& center, const REAL& radius, const REAL& M) :  coeff_fun(coeff_fun), center(center), radius(radius), M(M) {
     }
+
+    Powerseries<d,T>() : Powerseries([] (const Multiindex<d>&){return 0;}, vector<T,d>(), 1, 0) {};
 
     T get_coefficient(const Multiindex<d>& index) const{
       while(trunc_series.get_degree() <= max(index)){

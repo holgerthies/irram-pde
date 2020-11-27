@@ -117,6 +117,9 @@ public:
   T operator[](const unsigned int& i) const{
     return (*this)(0,i);
   }
+  T& operator[](const unsigned int& i) {
+    return (*this)(0,i);
+  }
   vector(const Matrix<1,n,T>& v){
     this->M = v.M;
   }

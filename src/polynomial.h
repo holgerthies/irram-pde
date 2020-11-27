@@ -1,7 +1,7 @@
 #ifndef POLYNOMIAL_H
 #define POLYNOMIAL_H
 #include <iRRAM.h>
-#include "cinfinity.h"
+#include "mfun.h"
 #include <string>
 #include <regex>
 #include <sstream>
@@ -76,13 +76,20 @@ namespace iRRAM{
     int get_degree() const {
       return coeffs.size()-1;
     }
+
     Polynomial() {
     }
+
     Polynomial(const std::vector<coeff_type>& coeffs) : coeffs(coeffs){
+    }
+
+    Polynomial(const T& c){
+      coeffs = {Polynomial<d-1, T>(c)};
     }
     CinfinityPtr<d,T> deep_copy() override{
       return std::make_shared<Polynomial<d,T>>(coeffs);
     }
+   
 
     Polynomial(const std::string& s, const std::array<char,d>& variables){
       std::stringstream ss(s);
@@ -222,16 +229,27 @@ namespace iRRAM{
   //   }
   //   return MVPowerseries<d,m,n,T>(Mptr);
   // }
-  // template<unsigned int d, unsigned int m, unsigned int n,class T>
-  // MVFunction<d,m,n,T> P2MF(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
-  //   std::array<std::array<CinfinityPtr<d,T>,n>,m> Mptr;
-  //   for(int i=0; i<n; i++){
-  //     for(int j=0; j<m; j++){
-  //       std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j], variables));
-  //       Mptr[i][j] = f;
-  //     }
-  //   }
-  //   return MVFunction<d,m,n,T>(Mptr);
-  // }
+  template<unsigned int d, unsigned int m, unsigned int n,class T>
+  MVFunction<d,m,n,T> P2M(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
+    std::array<std::array<CinfinityPtr<d,T>,n>,m> Mptr;
+    for(int i=0; i<n; i++){
+      for(int j=0; j<m; j++){
+        std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j], variables));
+       Mptr[i][j] = f;
+      }
+    }
+    return MVFunction<d,m,n,T>(Mptr);
+  }
+  template<unsigned int d, unsigned int m, unsigned int n,class T>
+  MVFunction<d,m,n,T> R2M(const std::array<std::array<REAL, n>,m>& M){
+    std::array<std::array<CinfinityPtr<d,T>,n>,m> Mptr;
+    for(int i=0; i<n; i++){
+      for(int j=0; j<m; j++){
+        std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j]));
+       Mptr[i][j] = f;
+      }
+    }
+    return MVFunction<d,m,n,T>(Mptr);
+  }
 }
 #endif

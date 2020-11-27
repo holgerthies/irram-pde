@@ -47,6 +47,8 @@ namespace iRRAM{
 
     DifferentialOperator(const Multiindex<d>& index, const MVFunction<d,e,e,T>& f) : coeffs{DifferentialOperatorCoefficient<d,e,T>(index,f)}{}
 
+    DifferentialOperator(){}
+
     auto get_coeffs() const {return coeffs;}
 
     MVFunction<d,e,1,T> operator()(const MVFunction<d,e,1,T>& v) {

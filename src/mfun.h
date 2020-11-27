@@ -71,6 +71,7 @@ template <unsigned int d, unsigned int m, unsigned int n, unsigned int k, class 
 MVFunction<d,m,k,T> operator*(const MVFunction<d,m,n,T>& lhs, const MVFunction<d,n,k,T>& rhs){
   return multiply(MVFunction<d,m,k,T>(), lhs,rhs);
 }
+
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const T& lhs, const MVFunction<d,m,n,T>& rhs){
   MVFunction<d,m,n,T> ans;
@@ -80,8 +81,8 @@ MVFunction<d,m,n,T> operator*(const T& lhs, const MVFunction<d,m,n,T>& rhs){
       }
     }
     return ans;
-
 }
+
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const MVFunction<d,m,n,T>& lhs, const T& rhs){
   return multiply(lhs,rhs);

@@ -12,6 +12,10 @@ namespace iRRAM{
   class Multiindex : public std::array<int,d>{
   public:
     using std::array<int,d>::array;
+    Multiindex(){
+      for(int j=0; j<d; j++)
+        (*this)[j] = 0;
+    }
     // template<typename ...E>
     // Multiindex(E&&... e) : std::array<int,d>{{std::forward<E>(e)...}} {}
     Multiindex(std::initializer_list<int> l) {

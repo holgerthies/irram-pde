@@ -2,6 +2,7 @@
 #define PDE_H
 #include <iRRAM.h>
 #include "cinfinity.h"
+#include "powerseries.h"
 #include "diffop.h"
 namespace iRRAM{
   template<unsigned int d, unsigned int e, class T>
@@ -25,6 +26,16 @@ namespace iRRAM{
       this->v[0].set_center(x);
     }
   };
+
+  template<unsigned int e, unsigned int d, class T>
+  std::array<Powerseries<1,T>, e> solve_pde(const DifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x, const REAL& r, const REAL& M) {
+    auto series = std::make_shared<Pde_solution_series<d,e,T>>(D, v, x);
+    std::array<Powerseries<1,T>,e> ans;
+    for(int i=0; i<e; i++){
+      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r, M);
+    }
+    return ans;
+  }
   // template<unsigned int e, unsigned int d, class T>
   // class Pde_solution_series{
   // private:
