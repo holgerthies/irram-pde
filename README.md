@@ -2,7 +2,7 @@
 
 The library provides the class templates for continuous function types and PDE solving.
 
-## Installation instruction
+## Installation instructions
 The library is header only, no installation is required.
 
 The only dependency is the [iRRAM](https://github.com/fbrausse/iRRAM) framework for exact real computation.
