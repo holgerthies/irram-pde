@@ -24,7 +24,7 @@ ANALYTIC<1,REAL> heat_equation(const ANALYTIC<1,REAL>& v, const REAL& t){
     int L = v.get_L();
     int M = v.get_M();
     Analytic_to_Fourier F(L,v);
-    Fourier_to_Analytic G(L,M, [F,t] (const int k) {return F.get_coeff(k)*exp(-4*pi()*pi()*k*k*t); });
+    Fourier_to_Analytic G(L,M, [F,t] (const int k) { return F.get_coeff(k)*exp(-4*pi()*pi()*k*k*t); });
     ANALYTIC<1,REAL> u(v.get_L(), v.get_M());
     for(int i=0; i<L; i++){
         vector<REAL,1> center;
@@ -43,16 +43,41 @@ void compute(){
   auto f = sine<1>(0,2*pi());
   f->set_center({0});
   auto g = derive(f,{4})+f;
-  auto fp = to_analytic(g, 4,1);
-  int max_iter;
+  int L = 4;
+  auto fp = to_analytic(f, L,1);
+  int max_iter,prec;
   static int iteration_counter=0;
-  iRRAM::cout << "choose number of iterations" << std::endl;
-  iRRAM::cin >>  max_iter;
+   iRRAM::cout << "choose precision (or 0 for iteration number)" << std::endl;
+   iRRAM::cin >>  prec;
+   bool out = true;
+   if(prec > 0){
+     iRRAM::cout << setRwidth(prec) << std::endl;
+   }
+   else{
+     iRRAM::cout << "choose number of iterations" << std::endl;
+     iRRAM::cin >>  max_iter;
+     out=false;
+   }
+
 
   iteration_counter++; 
   if(iteration_counter == max_iter) return;
 
-  auto u = heat_equation(fp, REAL("0.001"));
+   REAL t;
+   iRRAM::cout << "choose t > 0 " << std::endl;
+   iRRAM::cin >>  t;
+
+   REAL x;
+   iRRAM::cout << "choose 0 < x < 1 " << std::endl;
+   iRRAM::cin >>  x;
+   auto u = heat_equation(fp, t);
+   int l = 0;
+   while(positive(x-REAL(1)/REAL(L), 10)){
+       l++;
+       x -= REAL(1)/REAL(L);
+   } 
+   x += REAL(1)/REAL(2*L);
+   //cout << l << x << std::endl;
 //   Analytic_to_Fourier F(10,fp);
 //   for(int l=0; l<2; l++){
 //       for(int j=0; j < 3; j++){
@@ -82,8 +107,12 @@ void compute(){
    start = usage.ru_utime;
 
 
-   REAL y = u.ps[1]->sum({REAL(1)/REAL(2*fp.get_L())});
-   cout<<y<<std::endl;
+//    for(int i=0; i<4;i++){
+//        for(int j=0; j<5;j++){
+//            cout << i << "," << j << u.ps[i]->get_coefficient({j}) << std::endl;
+//        }
+//    }
+   REAL y = u.ps[0]->sum({x});
    getrusage(RUSAGE_SELF, &usage);
    end = usage.ru_utime;
    auto iteration_time =  end.tv_sec-start.tv_sec+double(end.tv_usec-start.tv_usec)/1000000;
@@ -122,6 +151,10 @@ void compute(){
 //       ans = ans + Xc[k]*exp(REAL(-2)*pi()*k*im*x);
 //   }
 //   cout << real(ans) << " " << imag(ans) << std::endl;
+if(out){
+   cout<<y<<std::endl;
+   return;
+}
 if(REAL(1) < REAL(1)) return;
 }
 

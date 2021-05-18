@@ -113,3 +113,19 @@ The second function only differs by the first one by that the Differential Opera
 
 For the heat equation the file `fourier.h` contains the transformation between power series and fourier series.
 It is used in the implementation of the solution for the heat equation in the file `heat.cc` in the `test` folder.
+
+## Benchmarks
+For testing and evaluating the running time of our implementation, we provide some example files in the `test` subfolder.
+
+The file `ck.cc` can be used to test the Cauchy-Kovalevskaya algorithm on several simple examples defined in `pde_examples.h`.
+
+For each example you can choose a time t and vector x where the solution should be evaluated. 
+Further, you can either choose the output precision and output the solution or choose the number of iRRAM iterations 
+to evaluate the dependency of precision to running time.
+In the second case no output is displayed but instead for each iteration, it outputs working precision, the resulting error bound for the solution value and the running time for the iteration.
+
+The file `ck_double.cc` contains the same examples but does not use irram (so choosing precision and iteration number is not necessary). 
+All `REAL` entities are replaced by `double` and it outputs the result in double precision.
+
+The file `heat.cc` contains the solver for the heat equation. 
+The input is similar to the one of `ck.cc`.

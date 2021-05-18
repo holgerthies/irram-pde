@@ -83,7 +83,6 @@ void compute(){
    iRRAM::cout << "4) 3D linear elasticitiy with constant coefficients (method 2)" << std::endl;
    iRRAM::cout << "5) 3D linear elasticitiy with constant function coefficients" << std::endl;
    iRRAM::cout << "6) 3D linear elasticitiy with trigonometric coefficients" << std::endl;
-   iRRAM::cout << "7) 1D acoustics with constant coefficients" << std::endl;
    iRRAM::cin >>  system;
   
    vector<REAL, 3> x;
