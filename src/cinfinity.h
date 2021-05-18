@@ -1,7 +1,6 @@
 #ifndef CINFIITY_H
 #define CINFIITY_H
 #include <functional>
-#include <iRRAM.h>
 #include <combinatorics.h>
 #include <matrix.h>
 #include <array>
@@ -158,17 +157,6 @@ namespace iRRAM{
   T Cinfinity<d,T>::operator()() const{
     return get_derivative({0});
   } 
-
-
-// derivative
-  // template <unsigned int d, class T>
-  // Cinfinity<d,T> Cinfinity<d,T>::derive(const Multiindex<d>& index) const{
-  //   auto add_index = [index] (const Multiindex<d>& ind) {
-  //                      return index+ind;
-  //                    };
-  //   return Cinfinity<d,T>([add_index,this] (auto ind, auto x) {return evaluate(add_index(ind), x);});
-  // }
-
 
 
 }

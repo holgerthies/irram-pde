@@ -1,38 +1,86 @@
 #ifndef PDE_H
 #define PDE_H
-#include <iRRAM.h>
 #include "cinfinity.h"
 #include "powerseries.h"
 #include "diffop.h"
 namespace iRRAM{
-  template<unsigned int d, unsigned int e, class T>
+  template<unsigned int d, unsigned int e,class C, class T>
   class Pde_solution_series{
   private:
-    DifferentialOperator<d,e,T> D;
+    AbstractDifferentialOperator<d,e,C, T> D;
     std::vector<MVFunction<d,e,1,T>> v;
   public:
     T get_coefficient(unsigned int m, unsigned int i) {
       int sz = v.size();
       if(sz <= i) v.resize(i+1);
       for(int j=sz; j<=i; j++){
-        for(int k=0; k<d; k++){
-          v[j] = v[j] + (1/REAL(j))*D(v[j-1]);
-        }
+          v[j] = (1/REAL(j))*D(v[j-1]);
       }
       return v[i](m,0)->get_derivative({0});
     }
 
-    Pde_solution_series(const DifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x) : D(D), v({v}) {
+    Pde_solution_series(const AbstractDifferentialOperator<d,e,C,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x) : D(D), v({v}) {
       this->v[0].set_center(x);
     }
   };
 
+  template<unsigned int d, unsigned int e,class T>
+  class Pde_solution_series_constant{
+  private:
+    ConstantDifferentialOperator<d,e,T> D;
+    MVFunction<d,e,1,REAL> v;
+    std::vector<ConstantDifferentialOperator<d,e,T>> Dn;
+  public:
+    T get_coefficient(unsigned int m, unsigned int i) {
+      int sz = Dn.size();
+      if(sz <= i) Dn.resize(i+1);
+      for(int j=sz; j<=i; j++){
+          Dn[j] = D*Dn[j-1];
+      }
+      return inv_factorial(i)*Dn[i](v)(m,0)->get_derivative({0});
+    }
+
+    Pde_solution_series_constant(const ConstantDifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x) : D(D), v(v), Dn({D}) {
+      this->v.set_center(x);
+    }
+  };
+
+
+  REAL get_sol_r(unsigned int d, unsigned int e, const REAL& r, const REAL& M){
+    return r/(5*int(d)*int(d+1)*int(e)*M);
+  }
+  REAL get_sol_r_const(unsigned int d, unsigned int e, const REAL& r, const REAL& M){
+    return r/(int(d)*int(e)*M);
+  }
   template<unsigned int e, unsigned int d, class T>
   std::array<Powerseries<1,T>, e> solve_pde(const DifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x, const REAL& r, const REAL& M) {
-    auto series = std::make_shared<Pde_solution_series<d,e,T>>(D, v, x);
+    auto series = std::make_shared<Pde_solution_series<d,e,DifferentialOperatorCoefficient<d,e,T>, T>>(D, v, x);
     std::array<Powerseries<1,T>,e> ans;
+    REAL r_new = get_sol_r(d, e, r, M);
     for(int i=0; i<e; i++){
-      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r, M);
+      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r_new, M);
+    }
+    return ans;
+  }
+
+  template<unsigned int e, unsigned int d, class T>
+  std::array<Powerseries<1,T>, e> solve_pde_constant(const ConstantDifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x, const REAL& r, const REAL& M) {
+    auto series = std::make_shared<Pde_solution_series<d,e,DifferentialOperatorConstantCoefficient<d,e,T>, T>>(D, v, x);
+    std::array<Powerseries<1,T>,e> ans;
+    REAL r_new = get_sol_r_const(d, e, r, M);
+    for(int i=0; i<e; i++){
+      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r_new, M);
+    }
+    return ans;
+  }
+
+  template<unsigned int e, unsigned int d, class T>
+  std::array<Powerseries<1,T>, e> solve_pde_constant_method2(const ConstantDifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x, const REAL& r, const REAL& M) {
+    auto series = std::make_shared<Pde_solution_series_constant<d,e,T>>(D, v, x);
+    std::array<Powerseries<1,T>,e> ans;
+    REAL r_new = get_sol_r_const(d, e, r, M);
+    for(int i=0; i<e; i++){
+      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r_new, M);
     }
     return ans;
   }

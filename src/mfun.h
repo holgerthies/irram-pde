@@ -1,7 +1,6 @@
 #ifndef MFUN_H
 #define MFUN_H
 #include <functional>
-#include <iRRAM.h>
 #include "combinatorics.h"
 #include "matrix.h"
 #include "cinfinity.h"
@@ -86,6 +85,25 @@ MVFunction<d,m,n,T> operator*(const T& lhs, const MVFunction<d,m,n,T>& rhs){
 template <unsigned int d, unsigned int m, unsigned int n, class T>
 MVFunction<d,m,n,T> operator*(const MVFunction<d,m,n,T>& lhs, const T& rhs){
   return multiply(lhs,rhs);
+}
+
+// scalar multiplication with matrix
+template <unsigned int d, unsigned int m, unsigned int n, unsigned int k, class T>
+MVFunction<d,m,k,T> operator*(const Matrix<m,n,T>& lhs, const MVFunction<d,n,k,T>& rhs){
+    MVFunction<d,m,k,T> ans;
+    for(unsigned int i=0; i<m;i++){
+      for(unsigned int j=0;j<k;j++){
+        for(unsigned int v=0; v<n; v++){
+          ans(i,j) = ans(i,j) + lhs(i,v)*rhs(v,j);
+        }
+      }
+    }
+    return ans;
+}
+
+template <unsigned int d, unsigned int m, unsigned int n, unsigned int k, class T>
+MVFunction<d,m,k,T> operator*(const MVFunction<d,m,n,T>& lhs, const Matrix<n,k,T>& rhs){
+  return rhs*lhs;
 }
 
 template <unsigned int d, unsigned int e, class T>

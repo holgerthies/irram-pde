@@ -252,10 +252,10 @@ namespace iRRAM{
 
   REAL inv_factorial(const int n){
     using std::log;
-    if ((n!=0)&&(n*log(n)-n > 2*-ACTUAL_STACK.actual_prec)){
+    if ((n!=0)&&(n*log(n)-n > 2*-actual_stack().actual_prec)){
       REAL return_value(0);
       sizetype error;
-      sizetype_set(error,1,ACTUAL_STACK.actual_prec);
+      sizetype_set(error,1,actual_stack().actual_prec);
       return_value.seterror(error);
       return return_value;
     }

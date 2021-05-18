@@ -1,6 +1,5 @@
 #ifndef POLYNOMIAL_H
 #define POLYNOMIAL_H
-#include <iRRAM.h>
 #include "mfun.h"
 #include <string>
 #include <regex>
@@ -246,7 +245,7 @@ namespace iRRAM{
     for(int i=0; i<n; i++){
       for(int j=0; j<m; j++){
         std::shared_ptr<Cinfinity<d,T>> f(new Polynomial<d,T>(M[i][j]));
-       Mptr[i][j] = f;
+        Mptr[i][j] = f;
       }
     }
     return MVFunction<d,m,n,T>(Mptr);

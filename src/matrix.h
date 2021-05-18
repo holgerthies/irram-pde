@@ -1,6 +1,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 #include <array>
+namespace iRRAM{
 template <unsigned int m, unsigned int n, class T>
 class Matrix{
 private:
@@ -139,7 +140,7 @@ T power(const vector<T,d>& x, const iRRAM::Multiindex<d>& alpha){
   }
   return ans;
 }
-
+}
 namespace iRRAM{
 // euclidean norm
   template<unsigned int d>

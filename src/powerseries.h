@@ -1,6 +1,5 @@
 #ifndef POWERSERIES_H
 #define POWERSERIES_H
-#include <iRRAM.h>
 #include "polynomial.h"
 #include <numeric>
 namespace iRRAM{
@@ -119,7 +118,7 @@ namespace iRRAM{
       sizetype_add(total_error, sum_error, trunc_error);
       int deg=0;
       while (sizetype_less(sum_error, trunc_error) &&
-             (trunc_error.exponent >= ACTUAL_STACK.actual_prec)){
+             (trunc_error.exponent >= actual_stack().actual_prec)){
         deg++;
         for(auto idx : max_degree_indices<d>(deg)){
           sum += get_coefficient(idx)*power(xc, idx);
