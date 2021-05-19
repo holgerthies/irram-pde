@@ -1,0 +1,33 @@
+choose example
+1) 2D acoustics with constant coefficients
+2) 2D acoustics with constant function coefficients
+3) 3D linear elasticitiy with constant coefficients
+4) 3D linear elasticitiy with constant coefficients (method 2)
+5) 3D linear elasticitiy with constant function coefficients
+6) 3D linear elasticitiy with trigonometric coefficients
+2
+choose x 
+0.3 0.3
+choose t < +.166666666667E+0000
+0.08
+choose precision (or 0 for iteration number)
+0
+choose number of iterations
+16
+
+ dimension:2 system:1 time:0.114607 iteration:0 precision:-50 error_mantissa:128026927 error_exponent:-50 normalized:-24
+ dimension:2 system:1 time:0.386426 iteration:1 precision:-54 error_mantissa:7967449 error_exponent:-55 normalized:-33
+ dimension:2 system:1 time:0.585915 iteration:2 precision:-58 error_mantissa:7933698 error_exponent:-60 normalized:-38
+ dimension:2 system:1 time:0.799712 iteration:3 precision:-62 error_mantissa:4702305 error_exponent:-63 normalized:-41
+ dimension:2 system:1 time:1.05615 iteration:4 precision:-66 error_mantissa:5574118 error_exponent:-67 normalized:-45
+ dimension:2 system:1 time:1.61347 iteration:5 precision:-72 error_mantissa:4662271 error_exponent:-73 normalized:-51
+ dimension:2 system:1 time:2.54451 iteration:6 precision:-80 error_mantissa:6551351 error_exponent:-81 normalized:-59
+ dimension:2 system:1 time:4.03204 iteration:7 precision:-89 error_mantissa:7732905 error_exponent:-90 normalized:-68
+ dimension:2 system:1 time:7.25463 iteration:8 precision:-101 error_mantissa:5410320 error_exponent:-102 normalized:-80
+ dimension:2 system:1 time:13.043 iteration:9 precision:-116 error_mantissa:5341335 error_exponent:-117 normalized:-95
+ dimension:2 system:1 time:24.527 iteration:10 precision:-135 error_mantissa:6251014 error_exponent:-136 normalized:-114
+ dimension:2 system:1 time:48.4629 iteration:11 precision:-158 error_mantissa:7284561 error_exponent:-160 normalized:-138
+ dimension:2 system:1 time:101.414 iteration:12 precision:-187 error_mantissa:4226447 error_exponent:-188 normalized:-166
+ dimension:2 system:1 time:212.134 iteration:13 precision:-223 error_mantissa:8204181 error_exponent:-224 normalized:-202
+ dimension:2 system:1 time:456.635 iteration:14 precision:-268 error_mantissa:7895113 error_exponent:-269 normalized:-247
+ dimension:2 system:1 time:936.455 iteration:15 precision:-325 error_mantissa:5315394 error_exponent:-326 normalized:-304

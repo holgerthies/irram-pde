@@ -1,0 +1,19 @@
+choose example
+1) 2D acoustics with constant coefficients
+2) 2D acoustics with constant function coefficients
+3) 3D linear elasticitiy with constant coefficients
+4) 3D linear elasticitiy with constant coefficients (method 2)
+5) 3D linear elasticitiy with constant function coefficients
+6) 3D linear elasticitiy with trigonometric coefficients
+5
+choose x 
+0.3 0.3
+choose t < +.185185185185E-0002
+0.009
+choose precision (or 0 for iteration number)
+choose number of iterations
+4
+ dimension:3 system:5 time:368.939 iteration:0 precision:-50 error_mantissa:67838753 error_exponent:-49 normalized:-23
+ dimension:3 system:5 time:2105.08 iteration:1 precision:-54 error_mantissa:7357171 error_exponent:-55 normalized:-33
+ dimension:3 system:5 time:4498.75 iteration:2 precision:-58 error_mantissa:6567152 error_exponent:-59 normalized:-37
+ dimension:3 system:5 time:9731.77 iteration:3 precision:-62 error_mantissa:5861969 error_exponent:-63 normalized:-41
