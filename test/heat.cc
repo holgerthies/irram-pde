@@ -42,7 +42,7 @@ void compute(){
   FactorCache::init();  
   auto f = sine<1>(0,2*pi());
   f->set_center({0});
-  auto g = derive(f,{4})+f;
+  auto g = derive(f,{1})+f;
   int L = 4;
   auto fp = to_analytic(f, L,1);
   int max_iter,prec;

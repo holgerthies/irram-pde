@@ -90,16 +90,15 @@ namespace iRRAM{
       double error = M*power(1-xmax/radius, d);
       Multiindex<d> zero{};
       double sum = get_coefficient(zero);
-      double ans = sum;
       int deg=0;
-      while (error > 0.000001){
+      while (error > 0.000001 || deg < 5){
         deg++;
         for(auto idx : max_degree_indices<d>(deg)){
           sum += get_coefficient(idx)*power(xc, idx);
         }
         error *= error_factor;
       }
-     return ans;
+     return sum;
     } 
     // T sum(const std::array<unsigned int,d>& index, const std::array<T,d>& x) const {
     //   std::array<T, d> xc;

@@ -127,5 +127,19 @@ In the second case no output is displayed but instead for each iteration, it out
 The file `ck_double.cc` contains the same examples but does not use irram (so choosing precision and iteration number is not necessary). 
 All `REAL` entities are replaced by `double` and it outputs the result in double precision.
 
+In both cases the initial value function v is given by 
+
+`v(x,y) = (sin(0.5y), sin(x)+sin(0.5y), 0.3)`
+
+for the 2d acoustics equation and 
+
+`v(x,y,z) = (sin(0.5y), 0.2, 0.3,  sin(0.5y)*sin(0.3x), sin(0.5x)+sin(0.5y)+sin(0.3z), 0.6, 0.7, 0.8, 0.9)`
+
+for the 3d elasticity equation.
+
 The file `heat.cc` contains the solver for the heat equation. 
 The input is similar to the one of `ck.cc`.
+
+The initival value function is given by
+
+`v(x) = sin(2*pi*x) + 2*pi * cos(2*pi*x)`.
