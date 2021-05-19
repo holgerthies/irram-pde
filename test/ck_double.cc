@@ -20,6 +20,7 @@ double maximum(const double& a, const double& b) { return max(a,b); }
 #include "pde.h"
 #include "pde_examples.h"
 using namespace iRRAM;
+
 template<unsigned int m, unsigned int n>
 void print(const Matrix<m,n,double>& M){
   for(int i=0; i<m; i++){
@@ -29,7 +30,6 @@ void print(const Matrix<m,n,double>& M){
     std::cout << std::endl;
   }
 }
-
 typedef std::numeric_limits< double > dbl;
 int main(){
   FactorCache::init();  
@@ -139,7 +139,7 @@ int main(){
    std::vector<REAL> ys;
    
    if(system == 1){
-     auto sol = solve_pde_constant(acoustics_const, v2, x2, 1, 1);
+     auto sol = solve_pde_constant_method2(acoustics_const, v2, x2, 1, 1);
      for(auto& s : sol){
        ys.push_back(s.sum({t}));
      }

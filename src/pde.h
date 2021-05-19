@@ -3,6 +3,7 @@
 #include "cinfinity.h"
 #include "powerseries.h"
 #include "diffop.h"
+
 namespace iRRAM{
   template<unsigned int d, unsigned int e,class C, class T>
   class Pde_solution_series{
@@ -32,12 +33,15 @@ namespace iRRAM{
     std::vector<ConstantDifferentialOperator<d,e,T>> Dn;
   public:
     T get_coefficient(unsigned int m, unsigned int i) {
+      if(i == 0){
+        return v(m,0)->get_derivative({0});
+      }
       int sz = Dn.size();
       if(sz <= i) Dn.resize(i+1);
       for(int j=sz; j<=i; j++){
           Dn[j] = D*Dn[j-1];
       }
-      return inv_factorial(i)*Dn[i](v)(m,0)->get_derivative({0});
+      return inv_factorial(i)*Dn[i-1](v)(m,0)->get_derivative({0});
     }
 
     Pde_solution_series_constant(const ConstantDifferentialOperator<d,e,T>& D, const MVFunction<d,e,1,REAL>& v, const vector<T,d>& x) : D(D), v(v), Dn({D}) {

@@ -148,7 +148,7 @@ void compute(){
    start = usage.ru_utime;
    std::vector<REAL> ys;
    if(system == 1){
-     auto sol = solve_pde_constant(acoustics_const, v2, x2, 1, 1);
+     auto sol = solve_pde_constant_method2(acoustics_const, v2, x2, 1, 1);
      for(auto& s : sol){
        ys.push_back(s.sum({t}));
      }
