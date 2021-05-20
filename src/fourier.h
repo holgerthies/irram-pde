@@ -99,11 +99,12 @@ namespace iRRAM{
         REAL get_ps_coeff(const int l, const int j) const {
             int d = 1;
             int K = 0;
-            REAL error = power(REAL(2), (j+2))*REAL(M)*power(REAL(L*(d+j)), j+1)*power(REAL(1) / pi(), d);
+            REAL error = power(REAL(2), (j+2))*REAL(M)*power(REAL(L*(d+j)), j+1)*power(REAL(1) / pi(), d)+1;
             COMPLEX ans(0,0), sum(0,0);
             sizetype trunc_error = real_to_error(error), sum_error,total_error;
             sum.geterror(sum_error);
             sizetype_add(total_error, sum_error, trunc_error);
+            ans.seterror(total_error);
             COMPLEX im = COMPLEX(0,1);
             COMPLEX fac = power(2*pi(), j)*inv_factorial(j);
             if(j % 4 == 1){
@@ -122,9 +123,9 @@ namespace iRRAM{
                     if(k == 0){
                         sum = sum + fac*get_coeff(k)*exp(2*pi()*im*REAL(k)*(REAL(2*l+1)/REAL(2*L)));
                     }else{
-                        sum = sum + fac*power(k,j)*get_coeff(k)*exp(2*pi()*im*REAL(k)*(REAL(2*l+1)/REAL(2*L)));
+                        sum = sum + fac*power(k,j)*get_coeff(k)*exp(-2*pi()*im*REAL(k)*(REAL(2*l+1)/REAL(2*L)));
                         COMPLEX conjk = COMPLEX(real(get_coeff(k)), -imag(get_coeff(k)));
-                        sum = sum + fac*power(-k,j)*conjk*exp(-2*pi()*im*REAL(k)*(REAL(2*l+1)/REAL(2*L)));
+                        sum = sum + fac*power(-k,j)*conjk*exp(2*pi()*im*REAL(k)*(REAL(2*l+1)/REAL(2*L)));
                     }
                 }
                 error = power(REAL(2), (j+2))*REAL(M)*power(REAL(L*(d+j)), j+1)*power(REAL(1) / pi(), d);

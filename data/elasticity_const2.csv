@@ -1,0 +1,27 @@
+choose example
+1) 2D acoustics with constant coefficients
+2) 2D acoustics with constant function coefficients
+3) 3D linear elasticitiy with constant coefficients
+4) 3D linear elasticitiy with constant coefficients (method 2)
+5) 3D linear elasticitiy with constant function coefficients
+6) 3D linear elasticitiy with trigonometric coefficients
+choose x 
+0.3 0.3 0.3
+choose t < +.370370370370E-0001
+0.015
+choose precision (or 0 for iteration number)
+0
+choose number of iterations
+11
+
+ dimension:3 system:4 time:6.9244 iteration:0 precision:-50 error_mantissa:75556702 error_exponent:-49 normalized:-23
+ dimension:3 system:4 time:22.7165 iteration:1 precision:-54 error_mantissa:8130615 error_exponent:-55 normalized:-33
+ dimension:3 system:4 time:34.8366 iteration:2 precision:-58 error_mantissa:7000695 error_exponent:-60 normalized:-38
+ dimension:3 system:4 time:44.2561 iteration:3 precision:-62 error_mantissa:7440828 error_exponent:-64 normalized:-42
+ dimension:3 system:4 time:58.5519 iteration:4 precision:-66 error_mantissa:7908637 error_exponent:-68 normalized:-46
+ dimension:3 system:4 time:80.9768 iteration:5 precision:-72 error_mantissa:6807988 error_exponent:-73 normalized:-51
+ dimension:3 system:4 time:126.026 iteration:6 precision:-80 error_mantissa:7691065 error_exponent:-81 normalized:-59
+ dimension:3 system:4 time:198.858 iteration:7 precision:-89 error_mantissa:7037743 error_exponent:-90 normalized:-68
+ dimension:3 system:4 time:373.137 iteration:8 precision:-101 error_mantissa:6847597 error_exponent:-103 normalized:-81
+ dimension:3 system:4 time:613.538 iteration:9 precision:-116 error_mantissa:6657412 error_exponent:-116 normalized:-94
+ dimension:3 system:4 time:1264.65 iteration:10 precision:-135 error_mantissa:4934505 error_exponent:-126 normalized:-104

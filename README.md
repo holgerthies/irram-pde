@@ -138,8 +138,9 @@ for the 2d acoustics equation and
 for the 3d elasticity equation.
 
 The file `heat.cc` contains the solver for the heat equation. 
-The input is similar to the one of `ck.cc`.
+The input and output is similar to the one of `ck.cc` but additionally asks for an integer parameter m and 
+The initial value function is given by
 
-The initival value function is given by
+`v(x) = 2^m * sin(2^*(m+1)pi*x)`.
 
-`v(x) = sin(2*pi*x) + 2*pi * cos(2*pi*x)`.
+The [data](./data) folder contains some experimental results.

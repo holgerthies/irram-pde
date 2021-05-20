@@ -24,12 +24,12 @@ ANALYTIC<1,REAL> heat_equation(const ANALYTIC<1,REAL>& v, const REAL& t){
     int L = v.get_L();
     int M = v.get_M();
     Analytic_to_Fourier F(L,v);
-    Fourier_to_Analytic G(L,M, [F,t] (const int k) { return F.get_coeff(k)*exp(-4*pi()*pi()*k*k*t); });
+    Fourier_to_Analytic G(L,M, [F,t] (const int k) {  return F.get_coeff(k)*exp(-REAL(4)*pi()*pi()*k*k*t); });
     ANALYTIC<1,REAL> u(v.get_L(), v.get_M());
     for(int i=0; i<L; i++){
         vector<REAL,1> center;
         center[0] = 0;
-        auto ps = std::make_shared<Powerseries<1,REAL>>([G,i] (const Multiindex<1>& index) {return G.get_ps_coeff(i,index[0]);}, center, L, M);
+        auto ps = std::make_shared<Powerseries<1,REAL>>([G,i] (const Multiindex<1>& index) { return G.get_ps_coeff(i,index[0]);}, center, L, M);
         u.ps[i] = ps;
     }
     return u;
@@ -40,13 +40,18 @@ void compute(){
   struct rusage usage;
   struct timeval start, end;
   FactorCache::init();  
-  auto f = sine<1>(0,2*pi());
+  int m;
+   iRRAM::cout << "choose m" << std::endl;
+  cin >> m;
+  int M = 1 << m;
+  cout << M << std::endl;
+  auto f = sine<1>(0,2*M*pi());
   f->set_center({0});
-  auto g = derive(f,{1})+f;
-  int L = 4;
-  auto fp = to_analytic(f, L,1);
-  int max_iter,prec;
-  static int iteration_counter=0;
+  auto g = REAL(M)*f;
+  int L = 2*M;
+  auto fp = to_analytic(g, L,M);
+   int max_iter,prec;
+   static int iteration_counter=0;
    iRRAM::cout << "choose precision (or 0 for iteration number)" << std::endl;
    iRRAM::cin >>  prec;
    bool out = true;
@@ -76,7 +81,7 @@ void compute(){
        l++;
        x -= REAL(1)/REAL(L);
    } 
-   x += REAL(1)/REAL(2*L);
+   x -= REAL(1)/REAL(2*L);
    //cout << l << x << std::endl;
 //   Analytic_to_Fourier F(10,fp);
 //   for(int l=0; l<2; l++){
@@ -107,12 +112,12 @@ void compute(){
    start = usage.ru_utime;
 
 
-//    for(int i=0; i<4;i++){
-//        for(int j=0; j<5;j++){
+//    for(int i=0; i<L;i++){
+//        for(int j=0; j<1;j++){
 //            cout << i << "," << j << u.ps[i]->get_coefficient({j}) << std::endl;
 //        }
 //    }
-   REAL y = u.ps[0]->sum({x});
+   REAL y = u.ps[l]->sum({x});
    getrusage(RUSAGE_SELF, &usage);
    end = usage.ru_utime;
    auto iteration_time =  end.tv_sec-start.tv_sec+double(end.tv_usec-start.tv_usec)/1000000;
@@ -134,7 +139,10 @@ void compute(){
    std::cout << " error_mantissa:"  << error.mantissa;
    std::cout << " error_exponent:" << error.exponent;
    std::cout << " normalized:" << error_exp_normalized;
-  
+   DYADIC d;
+   sizetype error3;
+   y.to_formal_ball(d, error3);
+   std::cout << " value:" << swrite(d, 20);
    std::cout << std::endl;
 //   std::vector<COMPLEX> Xc(20);
 //   COMPLEX ans(0,0);
