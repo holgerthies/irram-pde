@@ -125,6 +125,19 @@ MVFunction<d,e,e,T> identity(){
     }
     return ans;
   }
+
+  template <unsigned int d, unsigned int m,class T>
+  MVFunction<d,m,d,T> jacobian(const MVFunction<d,m,1,T>& M){
+    MVFunction<d,m,d,T> ans;
+    for(unsigned int i=0; i < m; i++){
+      for(unsigned int j=0; j < d; j++){
+        Multiindex<d> index;
+        index[j] = 1;
+        ans(i,j) = derive(M(i,0), index);
+      }
+    }
+    return ans;
+  }
 }
 
 

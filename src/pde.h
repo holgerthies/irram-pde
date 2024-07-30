@@ -49,9 +49,63 @@ namespace iRRAM{
     }
   };
 
+  // solution of autonomous IVP y' = f(y)
+  template<unsigned int d, class T>
+  class Ode_solution_series{
+  private:
+    std::vector<MVFunction<d,d,1,T>> v;
+  public:
+    T get_coefficient(unsigned int m, unsigned int i) {
+      if(i == 0){
+        return v[0].get_center()[m];
+      }
+      i -= 1;
+      int sz = v.size();
+      if(sz <= i) v.resize(i+1);
+      for(int j=sz; j<=i; j++){
+          v[j] = (1/REAL(j+1))*(jacobian<d,d,T>(v[j-1])*v[0]);
+      }
+      return v[i](m,0)->get_derivative({0});
+    }
 
+    Ode_solution_series(const MVFunction<d,d,1,REAL>& v, const vector<T,d>& x) : v({v}) {
+      this->v[0].set_center(x);
+
+    }
+  };
+  // solution of autonomous IVP y' = f(y)
+  template<unsigned int d, class T>
+  class Pode_solution_series{
+  private:
+    std::vector<vector<Polynomial<d,T>,d>> v;
+  public:
+    T get_coefficient(unsigned int m, unsigned int i) {
+      if(i == 0){
+        return v[0][m].get_center()[m];
+      }
+      i -= 1;
+      int sz = v.size();
+      if(sz <= i) v.resize(i+1);
+      for(int j=sz; j<=i; j++){
+          for(int l=0; l<d; l++){
+            v[j][l] = derive(v[j-1][l], 0)*v[0][0];
+            for(int k=1; k<d; k++){
+             v[j][l] = v[j][l]+derive(v[j-1][l], k)*v[0][k];
+            }
+            v[j][l] = (1/REAL(j+1))*v[j][l];
+            v[j][l].set_center(v[0][l].get_center());
+          }
+      }
+      return v[i][m].get_derivative({0});
+    }
+
+    Pode_solution_series(const vector<Polynomial<d,T>,d>& v, const vector<T,d>& x) : v({v}) {
+      for(int i=0; i < d; i++)
+        this->v[0][i].set_center(x);
+    }
+  };
   REAL get_sol_r(unsigned int d, unsigned int e, const REAL& r, const REAL& M){
-    return r/(5*int(d)*int(d+1)*int(e)*M);
+    return r/(int(d)*int(e)*M);
   }
   REAL get_sol_r_const(unsigned int d, unsigned int e, const REAL& r, const REAL& M){
     return r/(int(d)*int(e)*M);
@@ -85,6 +139,27 @@ namespace iRRAM{
     REAL r_new = get_sol_r_const(d, e, r, M);
     for(int i=0; i<e; i++){
       ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r_new, M);
+    }
+    return ans;
+  }
+
+  template<unsigned int d, class T>
+  std::array<Powerseries<1,T>, d> solve_ode(const MVFunction<d,d,1,REAL>& v, const vector<T,d>& x, const REAL& r, const REAL& M) {
+    auto series = std::make_shared<Ode_solution_series<d,T>>(v, x);
+    std::array<Powerseries<1,T>,d> ans;
+    REAL r_new = r/(REAL(2*int(d))*M);
+    for(int i=0; i<d; i++){
+      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r_new, r);
+    }
+    return ans;
+  }
+  template<unsigned int d, class T>
+  std::array<Powerseries<1,T>, d> solve_pode(const vector<Polynomial<d,T>,d>& v, const vector<T,d>& x) {
+    auto series = std::make_shared<Pode_solution_series<d,T>>(v, x);
+    std::array<Powerseries<1,T>,d> ans;
+    REAL r_new = 1;
+    for(int i=0; i<d; i++){
+      ans[i] = Powerseries<1,T>([i, series] (const Multiindex<1>& index) {return series->get_coefficient(i, index[0]);}, {0}, r_new, r_new);
     }
     return ans;
   }

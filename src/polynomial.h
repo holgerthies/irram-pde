@@ -9,9 +9,9 @@ namespace iRRAM{
   template<unsigned int d, class T>
   class Polynomial;
 
-  // // upper bound of derivatives
+  // // upper bound of polynomial
   //   template<unsigned int d, class T>
-  //   REAL upper_bound(const Polynomial<d,T>& P, const REAL& r, typename std::array<unsigned int,d>::const_iterator derivative){
+  //   REAL upper_bound(const Polynomial<d,T>& P, const REAL& r){
   //   REAL ans = 0;
   //   for(int i=P.get_degree()-1; i>=0; i--){
   //     ans = upper_bound<d-1,T>(P.get_coeff(i), r)+abs(ans)*r;
@@ -51,9 +51,7 @@ namespace iRRAM{
     //   }
     //   return ans;
     // }
-    // REAL get_bound(const std::array<unsigned int, d>& index, const std::array<T,d>& x, const REAL& eps) const override{
-    //   return get_derivative_bound(index.begin(), norm2<d>(x)+eps);
-    // }
+
     T eval_iter(typename Multiindex<d>::const_iterator index, typename std::array<T,d>::const_iterator x) const{
       REAL ans = 0;
       for(int i=get_degree()-*index; i>=0; i--){
@@ -69,9 +67,25 @@ namespace iRRAM{
       return evaluate(index, this->get_center());
     }
 
+    T eval_fast_iter(typename std::array<T,d>::const_iterator x) const{
+      REAL ans = 0;
+      for(int i=get_degree(); i>=0; i--){
+        ans = coeffs[i].eval_fast_iter(x+1)+ans*(*x);
+      }
+      return ans;
+    }
+    T eval_fast(const vector<T,d>& x){
+      return eval_fast_iter(x.M[0].begin());
+    }
   public:
 
-
+    REAL get_bound(const REAL& r) const{
+      REAL ans = 0;
+      for(int i=get_degree(); i>=0; i--){
+        ans =coeffs[i].get_bound(r)+ans*(abs(this->get_center()[0]) + r);
+      }
+      return ans; 
+    }
     int get_degree() const {
       return coeffs.size()-1;
     }
@@ -132,6 +146,10 @@ namespace iRRAM{
       return evaluate(zero, x);
     }
 
+    T evaluate_center() {
+      return eval_fast(this->get_center());
+    }
+
     void set_coefficient(const Multiindex<d>& index, const T& value){
       if(coeffs.size() <= index[0]){
         coeffs.resize(index[0]+1);
@@ -158,6 +176,12 @@ namespace iRRAM{
     }
     template<unsigned int n,class D>
     friend Polynomial<n,D> operator*(const D& lhs, const Polynomial<n,D>& rhs);
+    template<unsigned int n,class D>
+    friend Polynomial<n,D> operator+(const Polynomial<n,D>& lhs, const Polynomial<n,D>& rhs);
+    template<unsigned int n,class D>
+    friend Polynomial<n,D> operator*(const Polynomial<n,D>& lhs, const Polynomial<n,D>& rhs);
+    template<unsigned int n,class D>
+    friend Polynomial<n,D> derive(const Polynomial<n,D>& p, const unsigned int var);
   };
 
   template<class T>
@@ -167,10 +191,10 @@ namespace iRRAM{
     // T get_derivative_coefficient(typename std::array<unsigned int,0>::const_iterator index, typename std::array<unsigned int,0>::const_iterator derivative) const{
     //   return value;
     // }
-    // T get_derivative_bound(typename std::array<unsigned int,0>::const_iterator index, const REAL& r) const{
-    //   return value;
-    // }
     T eval_iter(typename Multiindex<0>::const_iterator index, typename std::array<T,0>::const_iterator x) const{
+      return value;
+    }
+    T eval_fast_iter(typename std::array<T,0>::const_iterator x) const{
       return value;
     }
     friend class Polynomial<1,T>;
@@ -181,24 +205,61 @@ namespace iRRAM{
       std::stringstream ss(s);
       std::string token;
       while (std::getline(ss, token, '+')) {
-        this->value += token;
+        this->value += T(token);
       }
     }
     void print(const std::array<char,0>& variables, const bool endline = true){
       cout << value.as_double(2);
       if(endline) cout << std::endl;
     }
+    T get_bound(const REAL& r) const{
+      return abs(value);
+    }
     void set_coefficient(const Multiindex<0>& index, const T& value){
       this->value = value;
     }
     template<class D>
     friend Polynomial<0,D> operator*(const D& lhs, const Polynomial<0,D>& rhs);
+    template<class D>
+    friend Polynomial<0,D> operator*(const Polynomial<0,D>& lhs, const Polynomial<0,D>& rhs);
+    template<class D>
+    friend Polynomial<0,D> operator+(const Polynomial<0,D>& lhs, const Polynomial<0,D>& rhs);
   };
+  //addition
 
+  template <unsigned int d, class T>
+  Polynomial<d,T> operator+(const Polynomial<d,T>& lhs, const Polynomial<d,T>& rhs){
+    std::vector<Polynomial<d-1,T>> coeffs(max(rhs.get_degree(),lhs.get_degree())+1);
+    for(int i=0; i<coeffs.size(); i++){
+      coeffs[i] = T();
+      if(i <= lhs.get_degree())
+        coeffs[i] = lhs.coeffs[i];
+      if(i <= rhs.get_degree())
+        coeffs[i] = coeffs[i]+rhs.coeffs[i];
+    }
+    return Polynomial<d,T>(coeffs);
+  }
+  template <class T>
+  Polynomial<0,T> operator+(const Polynomial<0,T>& lhs, const Polynomial<0,T>& rhs){
+    return Polynomial<0,T>(lhs.value+rhs.value);
+  }
+
+  template <unsigned int d, class T>
+  Polynomial<d,T> operator*(const Polynomial<d,T>& lhs, const Polynomial<d,T>& rhs){
+    if(rhs.get_degree() < 0 || rhs.get_degree() < 0) return T();
+    std::vector<Polynomial<d-1,T>> coeffs(rhs.get_degree()+lhs.get_degree()+1);
+    for(int i=0; i<coeffs.size(); i++){
+      coeffs[i] = T();
+      for(int k = max(0,i-rhs.get_degree()); k <= min(lhs.get_degree(),i); k++){
+        coeffs[i] = coeffs[i]+lhs.coeffs[k]*rhs.coeffs[i-k];
+      }
+    }
+    return Polynomial<d,T>(coeffs);
+  }
 // scalar multiplication
   template <unsigned int d, class T>
   Polynomial<d,T> operator*(const T& lhs, const Polynomial<d,T>& rhs){
-    std::vector<Polynomial<0,T>> coeffs(rhs.get_degree()+1);
+    std::vector<Polynomial<d-1,T>> coeffs(rhs.get_degree()+1);
     for(int i=0; i<=rhs.get_degree(); i++){
       coeffs[i] = lhs*rhs.coeffs[i];
     }
@@ -209,9 +270,35 @@ namespace iRRAM{
   Polynomial<0,T> operator*(const T& lhs, const Polynomial<0,T>& rhs){
     return lhs*(rhs.value);
   }
+  template <class T>
+  Polynomial<0,T> operator*(const Polynomial<0,T>& lhs, const Polynomial<0,T>& rhs){
+    return lhs.value*(rhs.value);
+  }
   template <unsigned int d, class T>
   Polynomial<d,T> operator*(Polynomial<d,T> const& lhs,const T& rhs){
     return rhs*lhs;
+  }
+
+  template<unsigned int d, class T>
+  Polynomial<d,T> derive(Polynomial<d,T> const& p, const unsigned int var){
+    if(p.get_degree() < 0 || var >= d) return Polynomial<d,T>();
+    if(var == 0){
+      std::vector<Polynomial<d-1,T>> coeffs(p.get_degree());
+      for(int i=0; i<p.get_degree(); i++){
+        coeffs[i] = T(i+1)*p.coeffs[i+1];
+      }
+    return Polynomial<d,T>(coeffs);
+    } else{
+      std::vector<Polynomial<d-1,T>> coeffs(p.get_degree()+1);
+      for(int i=0; i<=p.get_degree(); i++){
+        coeffs[i] = derive(p.coeffs[i], var-1);
+      }
+     return Polynomial<d,T>(coeffs);
+    }
+  }
+  template<class T>
+  Polynomial<0,T> derive(Polynomial<0,T> const& p, const unsigned int var){
+    return Polynomial<0,T>();
   }
   // template<unsigned int d, unsigned int m, unsigned int n,class T>
   // MVPowerseries<d,m,n,T> P2M(const std::array<std::array<std::string, n>,m>& M, const std::array<char,d>& variables){
